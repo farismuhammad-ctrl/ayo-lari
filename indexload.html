@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AYO BERLARI — Aplikasi Lari</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#0A0E13;
+  --card:#131A22;
+  --card2:#1A232E;
+  --line:#232E3A;
+  --neon:#D9F100;
+  --neon-dim:#9DB300;
+  --teal:#3ECF8E;
+  --red:#FF5C5C;
+  --text:#F2F5F7;
+  --muted:#8A97A5;
+  --radius:22px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:#05070A;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+}
+.phone{
+  width:100%;max-width:430px;height:100vh;max-height:100vh;
+  background:var(--bg);position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+@media(min-width:500px){
+  .phone{height:92vh;max-height:900px;border-radius:44px;border:1px solid #1c2530;box-shadow:0 40px 100px rgba(0,0,0,.7);}
+}
+.statusbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 22px 6px;font-size:13px;font-weight:600;flex-shrink:0;
+}
+.statusbar .icons{display:flex;gap:5px;align-items:center;}
+.screens{flex:1;position:relative;overflow:hidden;}
+.screen{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding:8px 18px 100px;display:none;
+  scrollbar-width:none;
+}
+.screen::-webkit-scrollbar{display:none;}
+.screen.active{display:block;animation:fadein .35s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+/* ---------- ONBOARDING ---------- */
+.onboard{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;
+  padding:60px 28px 40px;text-align:center;
+}
+.onboard .shoe{display:block;width:230px;margin:0 auto 6px;filter:drop-shadow(0 10px 22px rgba(217,241,0,.35));animation:floaty 3.4s ease-in-out infinite;}
+@keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@media(prefers-reduced-motion:reduce){.onboard .shoe{animation:none;}}
+.onboard h1{font-size:34px;letter-spacing:4px;font-weight:800;}
+.onboard p{color:var(--muted);margin-top:10px;font-size:14px;line-height:1.6;}
+.waves{position:absolute;bottom:0;left:0;right:0;pointer-events:none;}
+.btn{
+  display:block;width:100%;padding:16px;border:none;border-radius:999px;
+  background:var(--neon);color:#0A0E13;font-weight:800;font-size:15px;
+  cursor:pointer;letter-spacing:.3px;transition:transform .15s, box-shadow .2s;
+}
+.btn:active{transform:scale(.97);}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--text);}
+.btn.dark{background:var(--card2);color:var(--text);}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:22px;}
+.dots span{width:8px;height:8px;border-radius:50%;background:#2A3542;}
+.dots span.on{background:var(--neon);width:22px;border-radius:6px;transition:.3s;}
+
+/* ---------- AUTH ---------- */
+.auth-logo{text-align:center;margin:26px 0 8px;}
+.auth-logo h1{font-size:22px;letter-spacing:3px;}
+.auth-logo p{color:var(--muted);font-size:12px;margin-top:6px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:7px;}
+.field input{
+  width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+  padding:15px 16px;color:var(--text);font-size:14px;outline:none;
+}
+.field input:focus{border-color:var(--neon);}
+.social-row{display:flex;flex-direction:column;gap:10px;}
+.social-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;border-radius:16px;font:600 14px inherit;font-family:inherit;cursor:pointer;border:1.5px solid var(--line);background:var(--card);color:var(--text);}
+.social-btn.apple{background:#fff;color:#000;border-color:#fff;}
+.social-btn:disabled{opacity:.6;}
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;margin:18px 0;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line);}
+.social{
+  width:100%;padding:14px;border-radius:999px;background:#fff;color:#111;
+  font-weight:700;font-size:14px;border:none;cursor:pointer;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.social.apple{background:#000;color:#fff;border:1.5px solid var(--line);}
+.link{color:var(--neon);font-weight:700;cursor:pointer;}
+.form-error{display:none;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.45);color:var(--red);
+  border-radius:14px;padding:12px 14px;font-size:12.5px;line-height:1.5;margin-bottom:14px;}
+.form-error.show{display:block;animation:shake .35s;}
+.field input.invalid{border-color:var(--red);}
+@keyframes shake{0%,100%{transform:none;}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+
+/* ---------- SETTINGS ---------- */
+.set-group{margin:20px 0 6px;font-size:11.5px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;font-weight:700;}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 4px;border-bottom:1px solid var(--line);}
+.set-row b{font-size:14px;display:block;font-weight:600;}
+.set-row small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.45;}
+.set-row .val{color:var(--muted);font-size:13px;white-space:nowrap;}
+.sw{position:relative;width:48px;height:28px;flex-shrink:0;}
+.sw input{opacity:0;width:0;height:0;position:absolute;}
+.sw i{position:absolute;inset:0;background:#2A3542;border-radius:999px;transition:.2s;cursor:pointer;}
+.sw i::after{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s;}
+.sw input:checked+i{background:var(--neon);}
+.sw input:checked+i::after{transform:translateX(20px);background:#0A0E13;}
+.seg{display:flex;gap:4px;background:var(--card);padding:4px;border-radius:999px;margin:10px 0 4px;}
+.seg button{flex:1;padding:10px 6px;border:none;border-radius:999px;background:transparent;color:var(--muted);font-weight:700;font-size:12.5px;cursor:pointer;}
+.seg button.on{background:var(--neon);color:#0A0E13;}
+.set-note{font-size:11.5px;color:var(--muted);line-height:1.55;margin:12px 4px;}
+.set-status{background:var(--card);border-radius:14px;padding:12px 14px;font-size:12.5px;line-height:1.5;margin:10px 0;color:var(--muted);}
+.btn.danger-btn{background:transparent;border:1.5px solid var(--red);color:var(--red);margin-top:10px;}
+.empty{text-align:center;color:var(--muted);padding:70px 24px;}
+.empty .e-ic{font-size:46px;margin-bottom:12px;}
+.empty b{display:block;color:var(--text);font-size:15px;margin-bottom:6px;}
+.empty p{font-size:12.5px;line-height:1.6;}
+.countdown{position:absolute;inset:0;background:rgba(5,8,11,.95);z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;}
+.countdown b{font-size:120px;color:var(--neon);font-weight:800;line-height:1;}
+.countdown span{color:var(--muted);font-size:12px;letter-spacing:2px;margin-top:14px;}
+
+/* ---------- HOME ---------- */
+.greet{display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px;}
+.greet p{color:var(--muted);font-size:12px;}
+.greet h2{font-size:19px;font-weight:800;margin-top:2px;}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--neon),#7a8b00);
+  display:flex;align-items:center;justify-content:center;font-weight:800;color:#0A0E13;cursor:pointer;}
+.stat-row{display:flex;gap:8px;margin:16px 0;}
+.stat{
+  flex:1;background:var(--card);border-radius:18px;padding:14px 10px;text-align:center;
+}
+.stat b{font-size:16px;display:block;}
+.stat span{font-size:10.5px;color:var(--muted);}
+.big-cta{padding:18px;font-size:16px;margin-bottom:10px;}
+.btn.dark.full{margin-bottom:10px;}
+.section-title{font-size:15px;font-weight:800;margin:20px 0 12px;display:flex;justify-content:space-between;align-items:center;}
+.section-title span{font-size:11px;color:var(--muted);font-weight:600;cursor:pointer;}
+.route-card{
+  background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;
+  display:flex;gap:12px;align-items:center;cursor:pointer;transition:transform .15s;
+}
+.route-card:active{transform:scale(.98);}
+.route-card svg{flex-shrink:0;}
+.route-info{flex:1;}
+.route-info b{font-size:14px;display:block;}
+.route-info small{color:var(--muted);font-size:11px;display:block;margin-top:4px;}
+.chip{display:inline-block;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-top:7px;}
+.chip.green{background:rgba(62,207,142,.15);color:var(--teal);}
+.chip.yellow{background:rgba(217,241,0,.15);color:var(--neon);}
+.chip.red{background:rgba(255,92,92,.15);color:var(--red);}
+
+/* ---------- RUN ---------- */
+.run-map{
+  background:var(--card);border-radius:var(--radius);height:220px;margin-bottom:14px;
+  position:relative;overflow:hidden;
+}
+.run-big{text-align:center;padding:6px 0 2px;}
+.run-big .km{font-size:52px;font-weight:800;letter-spacing:-1px;}
+.run-big .lbl{font-size:12px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.tile{background:var(--card);border-radius:18px;padding:14px;text-align:center;}
+.tile b{font-size:17px;display:block;}
+.tile span{font-size:10.5px;color:var(--muted);}
+.run-controls{display:flex;justify-content:center;gap:22px;align-items:center;margin-top:8px;}
+.ctrl{
+  width:58px;height:58px;border-radius:50%;background:var(--card2);border:1.5px solid var(--line);
+  color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.ctrl.main{width:78px;height:78px;background:var(--neon);color:#0A0E13;font-size:26px;border:none;
+  box-shadow:0 0 34px rgba(217,241,0,.35);}
+.pause-overlay{position:absolute;inset:0;background:rgba(5,8,11,.88);display:none;z-index:5;
+  flex-direction:column;justify-content:center;padding:24px;border-radius:0;}
+.pause-overlay.show{display:flex;}
+.pause-overlay .huge{text-align:center;margin-bottom:26px;}
+.pause-overlay .huge .km{font-size:56px;font-weight:800;}
+.pulse{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--teal);font-weight:700;}
+.pulse i{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pl 1.2s infinite;}
+@keyframes pl{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+/* ---------- SUMMARY / HISTORY ---------- */
+.summary-map{background:var(--card);border-radius:var(--radius);padding:10px;margin-bottom:14px;}
+.hrow{display:flex;justify-content:space-between;padding:13px 4px;border-bottom:1px solid var(--line);font-size:14px;}
+.hrow:last-child{border:none;}
+.hrow span{color:var(--muted);}
+.tabs{display:flex;gap:8px;margin:8px 0 16px;}
+.tab{padding:8px 18px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--card);color:var(--muted);cursor:pointer;border:none;}
+.tab.on{background:var(--neon);color:#0A0E13;}
+.list-item{display:flex;gap:12px;background:var(--card);border-radius:18px;padding:13px;margin-bottom:10px;cursor:pointer;}
+.list-item .ic{width:44px;height:44px;border-radius:14px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.list-item b{font-size:14px;display:block;}
+.list-item small{color:var(--muted);font-size:11px;}
+.list-item .nums{margin-left:auto;text-align:right;font-size:12px;}
+.list-item .nums b{font-size:14px;}
+
+/* ---------- PROFILE / SETTINGS / COMMUNITY ---------- */
+.prof-head{display:flex;align-items:center;gap:16px;margin:14px 0 20px;}
+.prof-head .avatar{width:64px;height:64px;font-size:24px;}
+.prof-head h3{font-size:19px;}
+.prof-head p{color:var(--muted);font-size:12px;margin-top:3px;}
+.pstats{display:flex;gap:10px;margin-bottom:18px;}
+.pstat{flex:1;background:var(--card);border-radius:18px;padding:14px;text-align:center;}
+.pstat b{font-size:15px;display:block;}
+.pstat span{font-size:10.5px;color:var(--muted);}
+.menu-item{display:flex;align-items:center;gap:14px;padding:16px 6px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14.5px;}
+.menu-item .mi{width:36px;height:36px;border-radius:12px;background:var(--card2);display:flex;align-items:center;justify-content:center;}
+.menu-item span.arr{margin-left:auto;color:var(--muted);}
+.menu-item.danger{color:var(--red);}
+.back{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;cursor:pointer;margin:6px 0 14px;color:var(--text);}
+.post{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.post .top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.post .top b{font-size:13.5px;display:block;}
+.post .top small{color:var(--muted);font-size:11px;}
+.post p{font-size:13px;line-height:1.55;color:#cfd8e0;}
+.post .acts{display:flex;gap:18px;margin-top:12px;color:var(--muted);font-size:12px;font-weight:600;}
+.post .acts div{cursor:pointer;display:flex;gap:6px;align-items:center;}
+
+/* ---------- NAV ---------- */
+.navbar{
+  position:absolute;bottom:0;left:0;right:0;height:78px;background:rgba(10,14,19,.96);
+  border-top:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-around;
+  padding-top:10px;z-index:20;backdrop-filter:blur(12px);
+}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--muted);cursor:pointer;width:60px;font-weight:600;}
+.nav-item.on{color:var(--neon);}
+.nav-item svg{width:22px;height:22px;}
+.run-fab{
+  width:60px;height:60px;border-radius:50%;background:var(--neon);margin-top:-30px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 8px 30px rgba(217,241,0,.4);border:5px solid var(--bg);
+}
+.run-fab svg{width:44px;height:30px;}
+.toast{
+  position:absolute;top:60px;left:50%;transform:translateX(-50%) translateY(-90px);
+  background:var(--card2);border:1px solid var(--line);color:var(--text);
+  padding:12px 20px;border-radius:999px;font-size:13px;font-weight:600;z-index:50;transition:transform .35s;
+  white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.hidden{display:none!important;}
+
+/* ---------- EKSPLORASI ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px;}
+.chips::-webkit-scrollbar{display:none;}
+.chips .tab{flex-shrink:0;white-space:nowrap;}
+.chip.gray{background:rgba(138,151,165,.15);color:var(--muted);}
+.loc-hint{font-size:11.5px;color:var(--muted);margin:0 2px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;line-height:1.4;}
+.loc-row{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13px;cursor:pointer;display:flex;gap:10px;align-items:center;}
+.fav{font-size:22px;color:var(--muted);cursor:pointer;padding:6px 4px;line-height:1;}
+.fav.on{color:var(--neon);}
+.rd-map{height:240px;border-radius:var(--radius);overflow:hidden;background:var(--card);margin-bottom:14px;position:relative;}
+.rd-actions{display:flex;gap:8px;margin-top:2px;}
+.rd-actions .btn{padding:13px 6px;font-size:13px;}
+.route-tag{position:absolute;top:10px;right:10px;z-index:800;background:rgba(10,14,19,.88);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:11px;font-weight:700;color:var(--teal);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sheet-bg{position:absolute;inset:0;background:rgba(5,8,11,.7);z-index:45;display:flex;align-items:flex-end;}
+.sheet{width:100%;max-height:90%;overflow-y:auto;background:var(--bg);border-top:1px solid var(--line);border-radius:28px 28px 0 0;padding:12px 20px 28px;animation:sheetup .28s ease;scrollbar-width:none;}
+.sheet::-webkit-scrollbar{display:none;}
+@keyframes sheetup{from{transform:translateY(40px);opacity:0;}to{transform:none;opacity:1;}}
+.sheet-grab{width:40px;height:4px;border-radius:4px;background:#2A3542;margin:0 auto 14px;}
+.sheet h3{font-size:17px;margin-bottom:2px;}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="shoe3d" viewBox="0 0 210 140"><defs><linearGradient id="up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7FF7A"/><stop offset=".45" stop-color="#D9F100"/><stop offset="1" stop-color="#7E8F00"/></linearGradient>
+<linearGradient id="upl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".30"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+<linearGradient id="ms" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#DDE3E8"/><stop offset="1" stop-color="#9AA6B1"/></linearGradient>
+<linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#9FAAB5"/></linearGradient>
+<radialGradient id="gl"><stop offset="0" stop-color="#D9F100" stop-opacity=".6"/><stop offset="1" stop-color="#D9F100" stop-opacity="0"/></radialGradient>
+<radialGradient id="sh"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs><ellipse cx="112" cy="124" rx="96" ry="11" fill="url(#gl)"/><ellipse cx="112" cy="125" rx="80" ry="5.5" fill="url(#sh)"/>
+<g stroke="#D9F100" stroke-linecap="round" stroke-width="3" fill="none" opacity=".7"><path d="M4 66 H22"/><path d="M0 78 H20" opacity=".6"/><path d="M8 90 H24" opacity=".4"/></g>
+<g transform="translate(16 -2) rotate(-5 105 82)">
+<path d="M30 113 C32 119 37 121 44 121 L164 121 C177 121 187 115 191 103 C188 112 180 117 166 117 L36 117 C32 117 30 115 30 113 Z" fill="#10161d"/>
+<path d="M24 98 C22 108 26 116 36 117 L166 117 C180 117 190 110 190 100 C190 96 186 93 180 93 L38 93 C30 93 25 94 24 98 Z" fill="url(#ms)"/>
+<path d="M26 99 C25 105 28 110 36 111.5 L166 111.5 C178 111.5 186 106 188.5 99.5" fill="none" stroke="#D9F100" stroke-width="2.6" stroke-linecap="round"/>
+<rect x="42" y="98" width="30" height="9" rx="4.5" fill="#0d141b"/><rect x="44.5" y="99.5" width="25" height="2.6" rx="1.3" fill="#fff" opacity=".4"/>
+<path d="M26 94 C23 78 25 62 31 50 C36 44 46 44 58 52 L76 30 C80 26 86 27 90 31 L136 62 C152 70 172 76 182 86 C187 90 188 93 184 94 Z" fill="url(#up)"/>
+<path d="M26 94 C23 78 25 62 31 50 C36 44 46 44 58 52 L76 30 C80 26 86 27 90 31 L136 62 C152 70 172 76 182 86 C187 90 188 93 184 94 Z" fill="url(#upl)"/>
+<path d="M26 94 C23 78 25 62 31 50 L45 53 C41 63 39 79 41 94 Z" fill="#000" opacity=".2"/>
+<path d="M150 72 C168 78 184 85 188 93 L152 94 C154 86 153 79 150 72 Z" fill="#000" opacity=".16"/>
+<path d="M34 90 C64 88 100 72 144 68 C120 82 80 95 34 92 Z" fill="#0A0E13" opacity=".9"/>
+<path d="M36 89 C66 86 102 71 140 68" stroke="#fff" stroke-opacity=".4" stroke-width="1" fill="none"/>
+<path d="M66 50 L130 83" stroke="#000" stroke-opacity=".28" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+<path d="M31 50 C36 44 46 44 58 52 L53 59 C45 53 39 53 35 57 Z" fill="#05070A" opacity=".92"/>
+<path d="M58 52 L76 30 C80 26 86 27 90 31 L86 41 L66 57 Z" fill="url(#tg)"/>
+<path d="M80.0 42.3 L87.0 29.8" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M80.0 42.3 L87.0 29.8" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M81.6 38.5 L84.8 33.1" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/><path d="M94.0 49.7 L101.0 37.2" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M94.0 49.7 L101.0 37.2" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M95.6 45.9 L98.8 40.5" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/><path d="M108.0 57.2 L115.0 44.7" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M108.0 57.2 L115.0 44.7" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M109.6 53.4 L112.8 48.0" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/><path d="M122.0 64.7 L129.0 52.2" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M122.0 64.7 L129.0 52.2" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M123.6 60.9 L126.8 55.5" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/>
+<path d="M30 52 C26 45 28 38 34 36 C36 42 37 47 36 51 Z" fill="#0A0E13"/>
+<path d="M44 68 C60 58 90 62 120 74 C96 70 70 70 44 76 Z" fill="#fff" opacity=".16"/>
+<ellipse cx="168" cy="80" rx="9" ry="3.8" fill="#fff" opacity=".4" transform="rotate(25 168 80)"/>
+<path d="M31 50 C36 44 46 44 58 52" stroke="#fff" stroke-opacity=".55" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M26 94 C23 78 25 62 31 50 C36 44 46 44 58 52 L76 30 C80 26 86 27 90 31 L136 62 C152 70 172 76 182 86 C187 90 188 93 184 94 Z" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.2" stroke-linejoin="round"/>
+</g></symbol><symbol id="shoe3d-d" viewBox="0 0 210 140"><defs><linearGradient id="up-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A5866"/><stop offset=".45" stop-color="#1D2630"/><stop offset="1" stop-color="#05070A"/></linearGradient>
+<linearGradient id="upl-d" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".30"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+<linearGradient id="ms-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#E3E8EC"/><stop offset="1" stop-color="#AEB8C2"/></linearGradient>
+<linearGradient id="tg-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#9FAAB5"/></linearGradient>
+<radialGradient id="gl-d"><stop offset="0" stop-color="#0A0E13" stop-opacity=".6"/><stop offset="1" stop-color="#0A0E13" stop-opacity="0"/></radialGradient>
+<radialGradient id="sh-d"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs><ellipse cx="112" cy="125" rx="80" ry="5.5" fill="url(#sh-d)"/>
+
+<g transform="translate(16 -2) rotate(-5 105 82)">
+<path d="M30 113 C32 119 37 121 44 121 L164 121 C177 121 187 115 191 103 C188 112 180 117 166 117 L36 117 C32 117 30 115 30 113 Z" fill="#10161d"/>
+<path d="M24 98 C22 108 26 116 36 117 L166 117 C180 117 190 110 190 100 C190 96 186 93 180 93 L38 93 C30 93 25 94 24 98 Z" fill="url(#ms-d)"/>
+<path d="M26 99 C25 105 28 110 36 111.5 L166 111.5 C178 111.5 186 106 188.5 99.5" fill="none" stroke="#0A0E13" stroke-width="2.6" stroke-linecap="round"/>
+<rect x="42" y="98" width="30" height="9" rx="4.5" fill="#0d141b"/><rect x="44.5" y="99.5" width="25" height="2.6" rx="1.3" fill="#fff" opacity=".4"/>
+<path d="M26 94 C23 78 25 62 31 50 C36 44 46 44 58 52 L76 30 C80 26 86 27 90 31 L136 62 C152 70 172 76 182 86 C187 90 188 93 184 94 Z" fill="url(#up-d)"/>
+<path d="M26 94 C23 78 25 62 31 50 C36 44 46 44 58 52 L76 30 C80 26 86 27 90 31 L136 62 C152 70 172 76 182 86 C187 90 188 93 184 94 Z" fill="url(#upl-d)"/>
+<path d="M26 94 C23 78 25 62 31 50 L45 53 C41 63 39 79 41 94 Z" fill="#000" opacity=".2"/>
+<path d="M150 72 C168 78 184 85 188 93 L152 94 C154 86 153 79 150 72 Z" fill="#000" opacity=".16"/>
+<path d="M34 90 C64 88 100 72 144 68 C120 82 80 95 34 92 Z" fill="#FFFFFF" opacity=".9"/>
+<path d="M36 89 C66 86 102 71 140 68" stroke="#fff" stroke-opacity=".4" stroke-width="1" fill="none"/>
+<path d="M66 50 L130 83" stroke="#000" stroke-opacity=".28" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+<path d="M31 50 C36 44 46 44 58 52 L53 59 C45 53 39 53 35 57 Z" fill="#05070A" opacity=".92"/>
+<path d="M58 52 L76 30 C80 26 86 27 90 31 L86 41 L66 57 Z" fill="url(#tg-d)"/>
+<path d="M80.0 42.3 L87.0 29.8" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M80.0 42.3 L87.0 29.8" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M81.6 38.5 L84.8 33.1" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/><path d="M94.0 49.7 L101.0 37.2" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M94.0 49.7 L101.0 37.2" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M95.6 45.9 L98.8 40.5" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/><path d="M108.0 57.2 L115.0 44.7" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M108.0 57.2 L115.0 44.7" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M109.6 53.4 L112.8 48.0" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/><path d="M122.0 64.7 L129.0 52.2" stroke="#000" stroke-opacity=".32" stroke-width="5" stroke-linecap="round" transform="translate(0 1.8)"/><path d="M122.0 64.7 L129.0 52.2" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/><path d="M123.6 60.9 L126.8 55.5" stroke="#000" stroke-opacity=".12" stroke-width="1.2" stroke-linecap="round"/>
+<path d="M30 52 C26 45 28 38 34 36 C36 42 37 47 36 51 Z" fill="#05070A"/>
+<path d="M44 68 C60 58 90 62 120 74 C96 70 70 70 44 76 Z" fill="#fff" opacity=".16"/>
+<ellipse cx="168" cy="80" rx="9" ry="3.8" fill="#fff" opacity=".4" transform="rotate(25 168 80)"/>
+<path d="M31 50 C36 44 46 44 58 52" stroke="#fff" stroke-opacity=".55" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M26 94 C23 78 25 62 31 50 C36 44 46 44 58 52 L76 30 C80 26 86 27 90 31 L136 62 C152 70 172 76 182 86 C187 90 188 93 184 94 Z" fill="none" stroke="#000" stroke-opacity=".28" stroke-width="1.2" stroke-linejoin="round"/>
+</g></symbol></svg>
+<div class="phone">
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <span class="icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 5.6c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A4.1 4.1 0 008 7.6c-1.1 0-2.1.4-2.9 1.2L3.7 7.4A6.1 6.1 0 018 5.6zM8 1c2.9 0 5.6 1.2 7.6 3.1l-1.4 1.4A8.1 8.1 0 008 3 8.1 8.1 0 002.8 5.5L1.4 4.1A10.7 10.7 0 018 1z" transform="translate(0 -1)"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="15" height="8" rx="1.5" fill="currentColor"/><path d="M23 4v4a2 2 0 000-4z" fill="currentColor" opacity=".4"/></svg>
+    </span>
+  </div>
+
+  <div class="screens">
+
+    <!-- ONBOARDING 1 -->
+    <section class="screen active" id="s-onboard1">
+      <div class="onboard" style="background:var(--bg);">
+        <div>
+          <svg class="shoe" viewBox="0 0 210 140" role="img" aria-label="Logo sepatu lari"><use href="#shoe3d"/></svg>
+          <h1>AYO BERLARI</h1>
+          <p>Lari Lebih Sehat, Jelajahi Lebih Jauh,<br>Raih Masa Depan yang Lebih Baik.</p>
+          <div class="dots"><span class="on"></span><span></span><span></span></div>
+        </div>
+        <button class="btn" onclick="go('s-onboard2')">Mulai</button>
+        <svg class="waves" height="90" width="100%" viewBox="0 0 430 90" preserveAspectRatio="none"><path d="M0 60 C80 20 160 90 240 50 C320 10 380 70 430 40 L430 90 L0 90 Z" fill="rgba(217,241,0,.12)"/><path d="M0 75 C90 40 180 95 270 60 C350 30 400 80 430 60 L430 90 L0 90 Z" fill="rgba(217,241,0,.08)"/></svg>
+      </div>
+    </section>
+
+    <!-- ONBOARDING 2 -->
+    <section class="screen" id="s-onboard2">
+      <div class="onboard">
+        <div>
+          <div style="font-size:64px;margin-bottom:10px;">🏃‍♀️</div>
+          <h1 style="letter-spacing:2px;">LARI CERDAS</h1>
+          <p>Lacak lari Anda dengan GPS<br>dan capai tujuan Anda.</p>
+          <div class="dots"><span></span><span class="on"></span><span></span></div>
+        </div>
+        <button class="btn" onclick="go('s-onboard3')">Lanjut</button>
+      </div>
+    </section>
+
+    <!-- ONBOARDING 3 -->
+    <section class="screen" id="s-onboard3">
+      <div class="onboard">
+        <div>
+          <div style="font-size:64px;margin-bottom:10px;">🗺️</div>
+          <h1 style="letter-spacing:2px;">JELAJAHI LEBIH BANYAK</h1>
+          <p>Temukan dan buat rute baru<br>yang sesuai dengan tujuan Anda.</p>
+          <div class="dots"><span></span><span></span><span class="on"></span></div>
+        </div>
+        <button class="btn" onclick="go('s-login')">Mulai</button>
+      </div>
+    </section>
+
+    <!-- LOGIN -->
+    <section class="screen" id="s-login">
+      <div class="auth-logo">
+        <svg width="104" viewBox="0 0 210 140" role="img" aria-label="Logo sepatu lari" style="filter:drop-shadow(0 6px 14px rgba(217,241,0,.28))"><use href="#shoe3d"/></svg>
+        <h1>AYO BERLARI</h1>
+        <p>Lari Lebih Sehat, Jelajahi Lebih Jauh</p>
+      </div>
+      <div class="form-error" id="login-error" role="alert"></div>
+      <div class="field"><label for="login-email">Email</label><input type="email" placeholder="nama@email.com" id="login-email" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="field"><label for="login-pass">Kata sandi</label><input type="password" placeholder="••••••••" id="login-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn" id="login-btn" onclick="doLogin()">Masuk</button>
+      <div class="divider">atau</div>
+      <div class="social-row">
+        <button class="social-btn" type="button" onclick="socialLogin('google')"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg> Lanjutkan dengan Google</button>
+        <button class="social-btn apple" type="button" onclick="socialLogin('apple')"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.800.9-.8 0-2-.9-3.300-.9-1.700 0-3.300 1-4.200 2.500-1.800 3.100-.5 7.700 1.300 10.200.9 1.200 1.900 2.600 3.200 2.500 1.300-.1 1.800-.8 3.300-.8s2 .8 3.300.8c1.400 0 2.200-1.200 3.100-2.500 1-1.400 1.400-2.800 1.400-2.900-.1 0-2.800-1.100-2.800-4zM13.900 5c.7-.9 1.200-2.100 1-3.300-1 0-2.300.7-3 1.600-.7.8-1.300 2-1.100 3.200 1.200.1 2.400-.6 3.100-1.500z"/></svg> Lanjutkan dengan Apple</button>
+      </div>
+      <p style="text-align:center;font-size:13px;margin-top:22px;color:var(--muted);">Belum punya akun? <span class="link" onclick="showRegister()">Daftar</span></p>
+    </section>
+
+    <!-- REGISTER -->
+    <section class="screen" id="s-register">
+      <div class="auth-logo">
+        <svg width="104" viewBox="0 0 210 140" role="img" aria-label="Logo sepatu lari" style="filter:drop-shadow(0 6px 14px rgba(217,241,0,.28))"><use href="#shoe3d"/></svg>
+        <h1>BUAT AKUN</h1>
+        <p>Daftar dulu untuk mulai berlari</p>
+      </div>
+      <div class="form-error" id="reg-error" role="alert"></div>
+      <div class="field"><label for="reg-name">Nama</label><input type="text" placeholder="Nama lengkap" id="reg-name" autocomplete="name"></div>
+      <div class="field"><label for="reg-email">Email</label><input type="email" placeholder="nama@email.com" id="reg-email" autocomplete="username"></div>
+      <div class="field"><label for="reg-pass">Kata sandi</label><input type="password" placeholder="Min. 8 karakter, huruf & angka" id="reg-pass" autocomplete="new-password"></div>
+      <div class="field"><label for="reg-pass2">Ulangi kata sandi</label><input type="password" placeholder="Ketik ulang kata sandi" id="reg-pass2" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <button class="btn" id="reg-btn" onclick="doRegister()">Daftar</button>
+      <div class="divider">atau</div>
+      <div class="social-row">
+        <button class="social-btn" type="button" onclick="socialLogin('google')"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg> Lanjutkan dengan Google</button>
+        <button class="social-btn apple" type="button" onclick="socialLogin('apple')"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.800.9-.8 0-2-.9-3.300-.9-1.700 0-3.300 1-4.200 2.500-1.800 3.100-.5 7.700 1.300 10.200.9 1.200 1.900 2.600 3.200 2.500 1.300-.1 1.800-.8 3.300-.8s2 .8 3.300.8c1.400 0 2.200-1.200 3.100-2.500 1-1.400 1.400-2.800 1.400-2.900-.1 0-2.800-1.100-2.800-4zM13.900 5c.7-.9 1.200-2.100 1-3.300-1 0-2.300.7-3 1.600-.7.8-1.300 2-1.100 3.200 1.200.1 2.400-.6 3.100-1.500z"/></svg> Lanjutkan dengan Apple</button>
+      </div>
+      <p style="text-align:center;font-size:13px;margin-top:22px;color:var(--muted);">Sudah punya akun? <span class="link" onclick="showLogin()">Masuk</span></p>
+    </section>
+
+    <!-- HOME -->
+    <section class="screen" id="s-home">
+      <div class="greet">
+        <div><p>Selamat datang,</p><h2 id="home-name">Rian!</h2></div>
+        <div class="avatar" onclick="go('s-profil')">R</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><b>12.8 km</b><span>Hari Ini</span></div>
+        <div class="stat"><b>1:24:36</b><span>Waktu</span></div>
+        <div class="stat"><b>6:35</b><span>Pace</span></div>
+      </div>
+      <button class="btn big-cta" onclick="freeRun()">▶&nbsp;&nbsp;MULAI LARI</button>
+      <button class="btn dark full" onclick="openGenerator()">BUAT RUTE</button>
+      <button class="btn dark full" onclick="go('s-rute')">JELAJAHI RUTE</button>
+      <div class="section-title">Rekomendasi Rute <span onclick="go('s-rute')">Lihat semua</span></div>
+      <div id="home-routes"></div>
+    </section>
+
+    <!-- RUN -->
+    <section class="screen" id="s-run" style="padding-bottom:0;">
+      <div class="pulse" id="gps-pulse"><i></i> GPS • Akurasi tinggi</div>
+      <div class="run-map"><div class="route-tag hidden" id="route-tag"></div><div id="map" style="position:absolute;inset:0;border-radius:22px;"></div></div>
+      <div class="run-big">
+        <div class="km" id="r-km">0.00</div>
+        <div class="lbl" id="r-unit">Kilometer</div>
+      </div>
+      <div class="grid2">
+        <div class="tile"><b id="r-time">00:00</b><span>Waktu</span></div>
+        <div class="tile"><b id="r-pace">--:--</b><span id="r-paceu">Pace /km</span></div>
+        <div class="tile"><b id="r-kcal">0</b><span>Kalori</span></div>
+        <div class="tile"><b id="r-step">0</b><span>Langkah</span></div>
+      </div>
+      <div class="run-controls">
+        <button class="ctrl" onclick="stopRun()">■</button>
+        <button class="ctrl main" id="btn-pause" onclick="pauseToggle()">❚❚</button>
+        <button class="ctrl" onclick="toast('Musik demo 🎵')">♫</button>
+      </div>
+      <div class="pause-overlay" id="pause-ov">
+        <div class="huge"><div class="km" id="p-km">0.00</div><div class="lbl" style="font-size:12px;color:var(--muted);letter-spacing:3px;">DIJEDA</div></div>
+        <button class="btn" style="margin-bottom:12px;" onclick="pauseToggle()">Lanjutkan</button>
+        <button class="btn ghost" onclick="finishRun()">Selesai</button>
+      </div>
+    </section>
+
+    <!-- FINISH -->
+    <section class="screen" id="s-finish">
+      <div style="text-align:center;margin:16px 0 6px;">
+        <svg width="96" viewBox="0 0 210 140" role="img" aria-label="Logo sepatu lari" style="margin:0 auto 6px;display:block;filter:drop-shadow(0 6px 14px rgba(217,241,0,.28))"><use href="#shoe3d"/></svg>
+        <h2 style="font-size:22px;letter-spacing:2px;">LARI SELESAI</h2>
+        <p style="color:var(--muted);font-size:13px;margin-top:6px;">Kerja bagus! Kamu luar biasa hari ini 🔥</p>
+      </div>
+      <div class="summary-map">
+        <svg viewBox="0 0 370 170" width="100%"><rect width="370" height="170" rx="14" fill="#101720"/>
+          <g stroke="#1c2631" stroke-width="7"><path d="M-10 30 H380"/><path d="M-10 90 H380"/><path d="M-10 145 H380"/><path d="M70 -10 V180"/><path d="M180 -10 V180"/><path d="M290 -10 V180"/></g>
+          <g id="sum-track"></g>
+        </svg>
+      </div>
+      <div class="run-big"><div class="km" id="f-km">0.00</div><div class="lbl" id="f-unit">Jarak (km)</div></div>
+      <div class="grid2">
+        <div class="tile"><b id="f-time">00:00</b><span>Waktu</span></div>
+        <div class="tile"><b id="f-pace">--:--</b><span id="f-paceu">Pace rata-rata</span></div>
+        <div class="tile"><b id="f-kcal">0</b><span>Kalori</span></div>
+        <div class="tile"><b id="f-step">0</b><span>Langkah</span></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn dark" style="flex:1;" onclick="saveRunAsRoute()">Simpan Rute</button>
+        <button class="btn dark" style="flex:1;" onclick="shareRun()">Bagikan</button>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="finishDone()">Selesai</button>
+    </section>
+
+    <!-- RUTE / EKSPLORASI -->
+    <section class="screen" id="s-rute">
+      <div class="back" onclick="go('s-home')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Jelajahi Rute</div>
+      <div class="field" style="margin-bottom:12px;"><input type="search" id="rt-q" placeholder="🔍  Cari nama rute atau lokasi" autocomplete="off" oninput="rf.q=this.value;renderRouteList()" onkeydown="if(event.key==='Enter')searchPlace()"></div>
+      <div class="chips" id="rt-chips"></div>
+      <div class="loc-hint" id="rt-hint"></div>
+      <div id="route-list"></div>
+      <button class="btn dark full" onclick="showSheet('sheet-filter')">⚙️ &nbsp;Filter Rute <span id="ff-badge"></span></button>
+      <button class="btn" onclick="showSheet('sheet-gen')">✦ &nbsp;Generate Rute Kustom</button>
+    </section>
+
+    <!-- DETAIL RUTE -->
+    <section class="screen" id="s-rute-detail">
+      <div class="back" onclick="go('s-rute')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Detail Rute</div>
+      <div id="rd-body"></div>
+    </section>
+
+    <!-- RIWAYAT -->
+    <section class="screen" id="s-riwayat">
+      <div class="back" onclick="go('s-home')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Riwayat Aktivitas</div>
+      <div class="tabs"><button class="tab on">Semua</button><button class="tab">Minggu Ini</button><button class="tab">Bulan Ini</button></div>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- KOMUNITAS -->
+    <section class="screen" id="s-komunitas">
+      <div class="back" onclick="go('s-home')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Komunitas</div>
+      <div class="tabs"><button class="tab on" onclick="tabOn(this)">Ikuti</button><button class="tab" onclick="tabOn(this)">Mengikuti</button></div>
+      <div class="empty">
+        <div class="e-ic">👥</div>
+        <b>Belum ada postingan</b>
+        <p>Komunitas masih kosong. Postingan dan aktivitas pelari lain akan muncul di sini.</p>
+      </div>
+    </section>
+
+    <!-- PROFIL -->
+    <section class="screen" id="s-profil">
+      <div class="greet"><div><p>Profil</p><h2 id="profil-name">Rian</h2></div>
+        <div class="avatar" id="profil-ava" style="background:linear-gradient(135deg,#8A97A5,#3a4652)">R</div></div>
+      <p style="color:var(--muted);font-size:12px;margin:-8px 0 16px;">Runner Pemula • Member AYO BERLARI</p>
+      <div class="pstats" id="profil-stats"></div>
+      <div class="section-title">Rekor Pribadi</div>
+      <div id="profil-prs"></div>
+      <button class="btn dark full" style="margin-top:18px;" onclick="go('s-pengaturan')">⚙️ &nbsp;Pengaturan</button>
+      <button class="btn ghost full" onclick="doLogout()">Keluar</button>
+    </section>
+
+    <!-- PENGATURAN -->
+    <section class="screen" id="s-pengaturan">
+      <div class="back" onclick="go('s-profil')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Pengaturan</div>
+      <div class="menu-item" onclick="go('s-set-akun')"><div class="mi">👤</div>Akun <span class="arr" id="sv-akun">›</span></div>
+      <div class="menu-item" onclick="go('s-set-unit')"><div class="mi">📏</div>Unit <span class="arr" id="sv-unit">›</span></div>
+      <div class="menu-item" onclick="go('s-set-notif')"><div class="mi">🔔</div>Notifikasi <span class="arr" id="sv-notif">›</span></div>
+      <div class="menu-item" onclick="go('s-set-privasi')"><div class="mi">🔒</div>Privasi <span class="arr" id="sv-privasi">›</span></div>
+      <div class="menu-item" onclick="go('s-set-gps')"><div class="mi">📍</div>GPS &amp; Lokasi <span class="arr" id="sv-gps">›</span></div>
+      <div class="menu-item" onclick="go('s-set-lari')"><div class="mi">🏃</div>Pengaturan Lari <span class="arr" id="sv-lari">›</span></div>
+    </section>
+
+    <!-- SUB-PENGATURAN -->
+    <section class="screen" id="s-set-akun">
+      <div class="back" onclick="go('s-pengaturan')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Akun</div>
+      <div id="set-akun"></div>
+    </section>
+    <section class="screen" id="s-set-unit">
+      <div class="back" onclick="go('s-pengaturan')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Unit</div>
+      <div id="set-unit"></div>
+    </section>
+    <section class="screen" id="s-set-notif">
+      <div class="back" onclick="go('s-pengaturan')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Notifikasi</div>
+      <div id="set-notif"></div>
+    </section>
+    <section class="screen" id="s-set-privasi">
+      <div class="back" onclick="go('s-pengaturan')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Privasi</div>
+      <div id="set-privasi"></div>
+    </section>
+    <section class="screen" id="s-set-gps">
+      <div class="back" onclick="go('s-pengaturan')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> GPS &amp; Lokasi</div>
+      <div id="set-gps"></div>
+    </section>
+    <section class="screen" id="s-set-lari">
+      <div class="back" onclick="go('s-pengaturan')"><svg width="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Pengaturan Lari</div>
+      <div id="set-lari"></div>
+    </section>
+
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar hidden" id="navbar">
+    <div class="nav-item on" data-nav="s-home" onclick="navGo(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1z"/></svg>Beranda</div>
+    <div class="nav-item" data-nav="s-rute" onclick="navGo(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Eksplorasi</div>
+    <div class="run-fab" onclick="freeRun()">
+      <svg viewBox="0 0 210 140" aria-hidden="true"><use href="#shoe3d-d"/></svg></div>
+    <div class="nav-item" data-nav="s-komunitas" onclick="navGo(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.85M15.5 3.15a4 4 0 010 7.7"/></svg>Komunitas</div>
+    <div class="nav-item" data-nav="s-profil" onclick="navGo(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profil</div>
+  </nav>
+
+  <div class="sheet-bg hidden" id="sheet-filter" onclick="if(event.target===this)hideSheet('sheet-filter')">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <h3>Filter Rute</h3>
+      <div class="set-group">Jarak</div><div id="ff-dist"></div>
+      <div class="set-group">Tipe rute</div><div id="ff-type"></div>
+      <div class="set-group">Tingkat</div><div id="ff-level"></div>
+      <div class="set-group">Urutkan</div><div id="ff-sort"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;"><button class="btn dark" onclick="resetFilter()">Reset</button><button class="btn" onclick="hideSheet('sheet-filter')">Terapkan</button></div>
+    </div>
+  </div>
+  <div class="sheet-bg hidden" id="sheet-gen" onclick="if(event.target===this)hideSheet('sheet-gen')">
+    <div class="sheet">
+      <div class="sheet-grab"></div>
+      <h3>Generate Rute Kustom</h3>
+      <p class="set-note" id="gen-note" style="margin-left:0"></p>
+      <div class="field"><label for="gen-name">Nama rute (opsional)</label><input type="text" id="gen-name" maxlength="40" placeholder="Contoh: Lari pagi di taman"></div>
+      <div class="set-group">Jarak target: <span id="gen-km-v" style="color:var(--neon)">5.0</span> <span id="gen-unit" style="color:var(--neon)">km</span></div>
+      <input type="range" id="gen-km" min="1" max="21" step="0.5" value="5" oninput="genKmChange()" style="width:100%;accent-color:#D9F100;">
+      <div class="set-group">Tipe rute</div><div id="gen-type"></div>
+      <button class="btn" style="margin-top:20px;" onclick="doGenerate()">✦ &nbsp;Buat Rute</button>
+    </div>
+  </div>
+  <div class="countdown hidden" id="cd" onclick="cancelCountdown()"><b id="cd-n">3</b><span>BERSIAP… KETUK UNTUK BATAL</span></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let currentUser='Rian';
+const PUBLIC_SCREENS=['s-onboard1','s-onboard2','s-onboard3','s-login','s-register'];
+function go(id){
+  if(!session&&!PUBLIC_SCREENS.includes(id)){id='s-login';} // wajib login
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  $('navbar').classList.toggle('hidden',!['s-home','s-rute','s-komunitas','s-profil'].includes(id));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('on',n.dataset.nav===id));
+  if(id==='s-home'||id==='s-rute')renderRoutes();
+  if(id==='s-riwayat')renderHistory();
+  if(id==='s-profil')renderProfile();
+  if(id==='s-rute-detail')renderDetail();
+  if(id==='s-rute'||id==='s-home')autoOrigin();
+  if(id==='s-pengaturan')refreshMenu();
+  if(id.startsWith('s-set-'))renderSettings(id);
+}
+function tabOn(b){b.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===b));}
+function navGo(el){go(el.dataset.nav);}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2200);}
+/* ---- AKUN & AUTENTIKASI ----
+   Catatan: ini autentikasi sisi-klien (localStorage) untuk demo/prototipe.
+   Kata sandi tidak disimpan polos (PBKDF2 + salt), tetapi tanpa server
+   keamanannya tetap terbatas pada perangkat/browser ini. */
+const ACC_KEY='ab_accounts',SES_KEY='ab_session';
+let session=null;
+function loadAccounts(){try{return JSON.parse(localStorage.getItem(ACC_KEY)||'{}');}catch(e){return {};}}
+function saveAccounts(a){
+  try{localStorage.setItem(ACC_KEY,JSON.stringify(a));return true;}catch(e){return false;}
+}
+/* akun terdaftar bersifat permanen di perangkat ini: keluar (logout) hanya menghapus sesi, bukan akun */
+function rememberEmail(em){try{localStorage.setItem('ab_lastemail',em);}catch(e){}}
+function prefillLogin(){try{const em=localStorage.getItem('ab_lastemail');if(em&&!$('login-email').value)$('login-email').value=em;}catch(e){}}
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){} // minta browser jangan menghapus data otomatis
+function toHex(buf){return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function randSalt(){const a=new Uint8Array(16);(window.crypto||{}).getRandomValues?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.floor(Math.random()*256));return toHex(a);}
+async function hashPass(pass,salt){
+  try{
+    if(window.crypto&&crypto.subtle){
+      const enc=new TextEncoder();
+      const key=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveBits']);
+      const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:100000,hash:'SHA-256'},key,256);
+      return 'p1:'+toHex(bits);
+    }
+  }catch(e){}
+  let h=2166136261;const s=salt+pass; // cadangan bila crypto.subtle tidak tersedia
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
+  return 'f1:'+(h>>>0).toString(16);
+}
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function showErr(boxId,msg,inputs){
+  const b=$(boxId);b.textContent=msg;b.classList.remove('show');void b.offsetWidth;b.classList.add('show');
+  try{b.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){}
+  (inputs||[]).forEach(i=>$(i).classList.add('invalid'));
+}
+function clearErr(boxId,inputs){$(boxId).classList.remove('show');inputs.forEach(i=>$(i).classList.remove('invalid'));}
+function showRegister(){clearErr('login-error',['login-email','login-pass']);go('s-register');}
+function showLogin(){clearErr('reg-error',['reg-name','reg-email','reg-pass','reg-pass2']);go('s-login');}
+
+async function doRegister(){
+  const ids=['reg-name','reg-email','reg-pass','reg-pass2'];
+  clearErr('reg-error',ids);
+  const name=$('reg-name').value.trim(),email=$('reg-email').value.trim().toLowerCase();
+  const p1=$('reg-pass').value,p2=$('reg-pass2').value;
+  if(name.length<2)return showErr('reg-error','Nama minimal 2 karakter.',['reg-name']);
+  if(!EMAIL_RE.test(email))return showErr('reg-error','Format email tidak valid.',['reg-email']);
+  if(p1.length<8||!/[A-Za-z]/.test(p1)||!/\d/.test(p1))return showErr('reg-error','Kata sandi minimal 8 karakter dan harus mengandung huruf serta angka.',['reg-pass']);
+  if(p1!==p2)return showErr('reg-error','Konfirmasi kata sandi tidak sama.',['reg-pass2']);
+  const accs=loadAccounts();
+  if(accs[email])return showErr('reg-error','Email ini sudah terdaftar. Silakan masuk.',['reg-email']);
+  $('reg-btn').disabled=true;
+  const salt=randSalt();
+  accs[email]={name,salt,hash:await hashPass(p1,salt),created:Date.now()};
+  const okSave=saveAccounts(accs);
+  $('reg-btn').disabled=false;
+  if(!okSave)return showErr('reg-error','Akun tidak bisa disimpan di browser ini (mode privat atau penyimpanan diblokir/penuh). Gunakan jendela biasa lalu coba lagi.',[]);
+  rememberEmail(email);
+  ids.forEach(i=>$(i).value='');
+  $('login-email').value=email;$('login-pass').value='';
+  go('s-login');toast('Akun berhasil dibuat. Silakan masuk ✓');
+}
+
+
+/* ---- LOGIN GOOGLE / APPLE ----
+   Isi ID di bawah agar tombol aktif (lihat catatan di bawah). Tanpa ID, tombol menampilkan pesan.
+   Google : buat OAuth Client ID (Web) di console.cloud.google.com, tambahkan alamat web ini ke "Authorized JavaScript origins".
+   Apple  : buat Services ID di developer.apple.com (butuh akun Apple Developer), domain HTTPS & Return URL terdaftar. */
+const GOOGLE_CLIENT_ID='';
+const APPLE_CLIENT_ID='',APPLE_REDIRECT_URI='';
+function loadScript(src){return new Promise((res,rej)=>{const e=document.querySelector('script[src="'+src+'"]');if(e&&e.dataset.ok){res();return;}const t=e||document.createElement('script');t.src=src;t.async=true;t.onload=()=>{t.dataset.ok=1;res();};t.onerror=()=>rej(new Error('load'));if(!e)document.head.appendChild(t);});}
+function jwtPayload(t){try{const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(b+'==='.slice((b.length+3)%4)))));}catch(e){return null;}}
+function finishSocial(provider,email,name){
+  email=String(email||'').trim().toLowerCase();
+  if(!EMAIL_RE.test(email)){toast('Akun tidak mengembalikan email yang valid');return;}
+  const accs=loadAccounts();let acc=accs[email];
+  if(!acc){acc=accs[email]={name:name||email.split('@')[0],provider,created:Date.now()};}
+  else if(!acc.provider&&!acc.hash)acc.provider=provider;
+  acc.linked=Array.from(new Set([...(acc.linked||[]),provider]));
+  if(!saveAccounts(accs)){toast('Penyimpanan browser diblokir. Gunakan jendela biasa.');return;}
+  rememberEmail(email);
+  try{localStorage.setItem('ab_lastprovider',provider);}catch(e){}
+  startSession(email,acc.name);
+  $('login-pass').value='';
+  go('s-home');toast('Selamat datang, '+acc.name+'! 👋');
+}
+async function socialLogin(provider){
+  const btns=document.querySelectorAll('.social-btn');
+  try{
+    if(provider==='google'){
+      if(!GOOGLE_CLIENT_ID)return toast('Login Google belum dikonfigurasi (isi GOOGLE_CLIENT_ID)');
+      btns.forEach(b=>b.disabled=true);
+      await loadScript('https://accounts.google.com/gsi/client');
+      const tc=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'openid email profile',
+        callback:async r=>{
+          try{
+            if(r.error)throw new Error(r.error);
+            const u=await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+r.access_token}})).json();
+            if(!u.email||u.email_verified===false)throw new Error('email');
+            finishSocial('google',u.email,u.name||u.given_name);
+          }catch(e){toast('Login Google gagal. Coba lagi.');}
+          btns.forEach(b=>b.disabled=false);
+        },
+        error_callback:()=>{toast('Login Google dibatalkan');btns.forEach(b=>b.disabled=false);}});
+      tc.requestAccessToken({prompt:''});
+    }else{
+      if(!APPLE_CLIENT_ID||!APPLE_REDIRECT_URI)return toast('Login Apple belum dikonfigurasi (isi APPLE_CLIENT_ID & APPLE_REDIRECT_URI)');
+      btns.forEach(b=>b.disabled=true);
+      await loadScript('https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js');
+      AppleID.auth.init({clientId:APPLE_CLIENT_ID,scope:'name email',redirectURI:APPLE_REDIRECT_URI,usePopup:true});
+      const r=await AppleID.auth.signIn();
+      const p=jwtPayload(r.authorization.id_token)||{};
+      const nm=r.user&&r.user.name?((r.user.name.firstName||'')+' '+(r.user.name.lastName||'')).trim():'';
+      finishSocial('apple',p.email||(r.user&&r.user.email),nm);
+      btns.forEach(b=>b.disabled=false);
+    }
+  }catch(e){
+    btns.forEach(b=>b.disabled=false);
+    toast(e&&e.error==='popup_closed_by_user'?'Login dibatalkan':'Tidak bisa terhubung ke '+(provider==='google'?'Google':'Apple')+'. Periksa koneksi internet.');
+  }
+}
+
+let loginFails=0,lockUntil=0;
+async function doLogin(){
+  const ids=['login-email','login-pass'];
+  clearErr('login-error',ids);
+  const email=$('login-email').value.trim().toLowerCase(),pass=$('login-pass').value;
+  if(Date.now()<lockUntil){
+    return showErr('login-error','Terlalu banyak percobaan gagal. Coba lagi dalam '+Math.ceil((lockUntil-Date.now())/1000)+' detik.',[]);
+  }
+  if(!email||!pass)return showErr('login-error','Email dan kata sandi wajib diisi.',[!email?'login-email':'login-pass']);
+  if(!EMAIL_RE.test(email))return showErr('login-error','Format email tidak valid.',['login-email']);
+  const accs=loadAccounts(),acc=accs[email];
+  if(!acc){
+    return showErr('login-error','Akun dengan email ini belum terdaftar. Silakan daftar terlebih dahulu.',['login-email']);
+  }
+  if(!acc.hash)return showErr('login-error','Akun ini terdaftar lewat '+(acc.provider==='apple'?'Apple':'Google')+'. Gunakan tombol "Lanjutkan dengan '+(acc.provider==='apple'?'Apple':'Google')+'".',['login-email']);
+  $('login-btn').disabled=true;
+  const h=await hashPass(pass,acc.salt);
+  $('login-btn').disabled=false;
+  if(h!==acc.hash){
+    loginFails++;
+    if(loginFails>=5){loginFails=0;lockUntil=Date.now()+30000;return showErr('login-error','Kata sandi salah 5 kali. Login dikunci selama 30 detik.',['login-pass']);}
+    return showErr('login-error','Kata sandi salah. Sisa percobaan: '+(5-loginFails)+'.',['login-pass']);
+  }
+  loginFails=0;rememberEmail(email);
+  startSession(email,acc.name);
+  $('login-pass').value='';
+  go('s-home');toast('Selamat datang kembali, '+acc.name+'! 👋');
+}
+function startSession(email,name){
+  session={email,name};
+  localStorage.setItem(SES_KEY,JSON.stringify(session));
+  setUser(name);
+  try{runs=JSON.parse(localStorage.getItem('ab_runs_'+email)||'[]');}catch(e){runs=[];}
+  try{prs=JSON.parse(localStorage.getItem('ab_pr_'+email)||'{}');}catch(e){prs={};}
+  loadSettings();loadRouteData();
+}
+function setUser(name){
+  currentUser=name;
+  $('home-name').textContent=name+'!';
+  $('profil-name').textContent=name;
+  $('profil-ava').textContent=name.charAt(0).toUpperCase();
+}
+function doLogout(){
+  cancelCountdown();stopTracking();dist=0;secs=0;runs=[];prs={};track=[];
+  session=null;localStorage.removeItem(SES_KEY);settings={...DEFAULTS};activeRoute=null;curRoute=null;favs=[];myRoutes=[];
+  setUser('');
+  renderHistory();renderProfile();
+  $('login-pass').value='';$('login-email').value='';prefillLogin();
+  go('s-login');toast('Anda telah keluar.');
+}
+function like(el){const s=el.querySelector('span');const on=el.style.color==='rgb(217, 241, 0)';el.style.color=on?'':'#D9F100';s.textContent=parseInt(s.textContent)+(on?-1:1);}
+
+/* ---- EKSPLORASI & RUTE ---- */
+const TPL=[
+ {id:'t1',n:'Morning Park Loop',km:3,type:'loop',seed:11,rec:1,d:'Loop santai untuk pemanasan atau pemula. Kembali tepat ke titik awal.'},
+ {id:'t2',n:'Tanjakan Monumen',km:5.2,type:'loop',seed:23,rec:1,d:'Loop 5K klasik dengan tikungan bervariasi. Cocok untuk latihan rutin.'},
+ {id:'t3',n:'City Edge',km:7.8,type:'loop',seed:37,rec:1,d:'Loop menengah untuk membangun daya tahan.'},
+ {id:'t4',n:'Long Run Weekend',km:10.2,type:'loop',seed:41,rec:1,d:'Lari panjang akhir pekan. Bawa air minum.'},
+ {id:'t5',n:'Sprint Pendek',km:2,type:'outback',seed:53,rec:0,d:'Pulang-pergi singkat untuk interval atau pendinginan.'},
+ {id:'t6',n:'Pulang-Pergi Santai',km:6,type:'outback',seed:67,rec:0,d:'Lari lurus ke satu arah lalu putar balik lewat jalur yang sama.'},
+ {id:'t7',n:'Interval 4K',km:4,type:'loop',seed:71,rec:0,d:'Loop pendek untuk sesi interval atau tempo.'},
+ {id:'t8',n:'Half Marathon Prep',km:21.1,type:'loop',seed:89,rec:0,d:'Jarak half marathon untuk persiapan lomba. Siapkan nutrisi.'}
+];
+const CHIPS=[['all','Semua'],['d510','5–10 km'],['loop','Loop'],['pemula','Pemula'],['rec','Rekomendasi'],['fav','★ Favorit'],['mine','Buatanku']];
+const RF0={q:'',chip:'all',dist:'all',type:'all',level:'all',sort:'rec'};
+let rf={...RF0};
+let favs=[],myRoutes=[],curRoute=null,activeRoute=null,guideLine=null,routeDone=false,savedThisRun=false,dmap=null,tplCache=null,genType='loop',originAsked=false;
+
+function loadRouteData(){
+  try{favs=JSON.parse(localStorage.getItem('ab_fav_'+session.email)||'[]');}catch(e){favs=[];}
+  try{myRoutes=JSON.parse(localStorage.getItem('ab_myroutes_'+session.email)||'[]');}catch(e){myRoutes=[];}
+}
+function saveFavs(){if(session)localStorage.setItem('ab_fav_'+session.email,JSON.stringify(favs));}
+function saveMy(){
+  if(!session)return;
+  try{localStorage.setItem('ab_myroutes_'+session.email,JSON.stringify(myRoutes));}
+  catch(e){toast('Penyimpanan penuh. Hapus beberapa rute.');}
+}
+
+/* lokasi acuan pembuatan rute */
+function loadOrigin(){
+  try{const o=JSON.parse(localStorage.getItem('ab_origin')||'null');if(o&&isFinite(o.lat)&&isFinite(o.lng))return o;}catch(e){}
+  return {lat:-6.2088,lng:106.8456,src:'default',label:'lokasi contoh (Jakarta)'};
+}
+let origin=loadOrigin();
+function setOrigin(o){origin=o;tplCache=null;try{localStorage.setItem('ab_origin',JSON.stringify(o));}catch(e){}renderRoutes();}
+function useMyLocation(manual){
+  if(!('geolocation' in navigator)){if(manual)toast('Geolokasi tidak didukung di perangkat ini');return;}
+  if(manual)toast('Mencari lokasi Anda…');
+  navigator.geolocation.getCurrentPosition(
+    p=>{setOrigin({lat:p.coords.latitude,lng:p.coords.longitude,src:'gps',label:'lokasi Anda'});if(manual)toast('Rute dibuat di sekitar lokasi Anda 📍');},
+    ()=>{if(manual)toast('Lokasi tidak bisa diambil. Periksa izin di Pengaturan › GPS & Lokasi.');},
+    {enableHighAccuracy:false,timeout:10000,maximumAge:600000});
+}
+function autoOrigin(){
+  if(originAsked||!session||!settings.gpsOn||origin.src==='search')return;
+  originAsked=true;useMyLocation(false);
+}
+async function searchPlace(){
+  const q=rf.q.trim();if(q.length<3)return;
+  toast('Mencari lokasi…');
+  try{
+    const res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=id&q='+encodeURIComponent(q));
+    const j=await res.json();
+    if(!j.length){toast('Lokasi "'+q+'" tidak ditemukan');return;}
+    const name=j[0].display_name.split(',')[0];
+    rf.q='';$('rt-q').value='';
+    setOrigin({lat:+j[0].lat,lng:+j[0].lon,src:'search',label:name});
+    toast('Rute dibuat di sekitar '+name+' 📍');
+  }catch(e){toast('Gagal mencari lokasi. Periksa koneksi internet.');}
+}
+
+/* pembuatan bentuk rute */
+function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
+function genShape(seed,km,type){
+  const R=rng(seed),P=[],rot=R()*Math.PI*2;
+  if(type==='loop'){
+    const p1=R()*6.28,p2=R()*6.28,p3=R()*6.28,a2=.2+R()*.15,a3=.1+R()*.1,a5=.04+R()*.06,N=72;
+    for(let i=0;i<=N;i++){const th=i/N*Math.PI*2,r=1+a2*Math.sin(2*th+p1)+a3*Math.sin(3*th+p2)+a5*Math.sin(5*th+p3);P.push([r*Math.cos(th),r*Math.sin(th)]);}
+    P[N]=P[0].slice();
+  }else{
+    const q1=R()*6.28,q2=R()*6.28,w1=.12+R()*.1,w2=.05+R()*.05,N=40,half=[];
+    for(let i=0;i<=N;i++){const t=i/N;half.push([t*2.2,w1*Math.sin(t*5+q1)+w2*Math.sin(t*11+q2)]);}
+    half.forEach(p=>P.push(p));
+    for(let i=N-1;i>=0;i--)P.push([half[i][0],half[i][1]]);
+  }
+  const x0=P[0][0],y0=P[0][1],c=Math.cos(rot),sn=Math.sin(rot);
+  const Q=P.map(([x,y])=>{x-=x0;y-=y0;return [x*c-y*sn,x*sn+y*c];});
+  let L=0;for(let i=1;i<Q.length;i++)L+=Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1]);
+  const k=km*1000/L;
+  return Q.map(([x,y])=>[x*k,y*k]);
+}
+function toLL(o,pts){return pts.map(([x,y])=>[o.lat+y/111320,o.lng+x/(111320*Math.cos(o.lat*Math.PI/180))]);}
+function prep(r){
+  r.cum=[0];
+  for(let i=1;i<r.pts.length;i++)r.cum.push(r.cum[i-1]+hav(r.pts[i-1],r.pts[i]));
+  r.len=r.cum[r.cum.length-1];r.km=r.len/1000;
+  return r;
+}
+function pointAlong(r,d){
+  if(d<=0)return r.pts[0];
+  if(d>=r.len)return r.pts[r.pts.length-1];
+  let i=1;while(i<r.cum.length&&r.cum[i]<d)i++;
+  const a=r.pts[i-1],b=r.pts[i],t=(d-r.cum[i-1])/((r.cum[i]-r.cum[i-1])||1);
+  return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+}
+function getAllRoutes(){
+  const key=origin.lat+','+origin.lng;
+  if(!tplCache||tplCache.key!==key)tplCache={key,list:TPL.map(t=>prep({...t,mine:false,pts:toLL(origin,genShape(t.seed,t.km,t.type))}))};
+  return [...myRoutes.map(r=>prep({...r,mine:true,rec:0})),...tplCache.list];
+}
+function levelOf(km){return km<5?{key:'pemula',label:'Pemula',c:'green'}:km<10?{key:'menengah',label:'Menengah',c:'yellow'}:{key:'lanjut',label:'Lanjut',c:'red'};}
+function typeLabel(t){return {loop:'Loop',outback:'Pulang-pergi',recorded:'Rekaman'}[t]||t;}
+function fmtD(km){const u=unitMeta();return (km*1000/u.f).toFixed(1)+' '+u.l;}
+function fmtDur(sec){const m=Math.round(sec/60);return m>=60?Math.floor(m/60)+' j '+String(m%60).padStart(2,'0')+' mnt':m+' mnt';}
+function avgPace(){
+  let km=0,sec=0;
+  runs.forEach(r=>{const [m,s]=String(r.t).split(':').map(Number);km+=r.km;sec+=(m||0)*60+(s||0);});
+  const u=unitMeta();
+  if(km>=0.5){const p=sec/km;return {sec:p,label:'Pace Anda',show:fmt(Math.round(p*u.f/1000))+' /'+u.l};}
+  return {sec:390,label:'Pace standar',show:fmt(Math.round(390*u.f/1000))+' /'+u.l};
+}
+
+/* tampilan daftar */
+function thumb(pts,w,h){
+  w=w||86;h=h||64;
+  const k=Math.cos(pts[0][0]*Math.PI/180),xs=pts.map(p=>p[1]*k),ys=pts.map(p=>-p[0]);
+  const mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);
+  const W=140,H=90,pad=12,sc=Math.min((W-2*pad)/((mxx-mnx)||1e-9),(H-2*pad)/((mxy-mny)||1e-9));
+  const ox=(W-(mxx-mnx)*sc)/2,oy=(H-(mxy-mny)*sc)/2,step=Math.max(1,Math.floor(pts.length/60));
+  const idx=[];for(let i=0;i<pts.length;i+=step)idx.push(i);if(idx[idx.length-1]!==pts.length-1)idx.push(pts.length-1);
+  const c=idx.map(i=>((xs[i]-mnx)*sc+ox).toFixed(1)+','+((ys[i]-mny)*sc+oy).toFixed(1));
+  const st=c[0].split(',');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 140 90" style="flex-shrink:0"><rect width="140" height="90" rx="12" fill="#101720"/><polyline points="${c.join(' ')}" fill="none" stroke="#D9F100" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${st[0]}" cy="${st[1]}" r="5" fill="#3ECF8E"/></svg>`;
+}
+function routeCard(r){
+  const lv=levelOf(r.km),fav=favs.includes(r.id);
+  const tags=(r.mine?'<span class="chip green" style="margin-left:6px">Buatanku</span>':'')+(r.rec?'<span class="chip gray" style="margin-left:6px">Rekomendasi</span>':'');
+  return `<div class="route-card" onclick="openRoute('${r.id}')">${thumb(r.pts)}
+    <div class="route-info"><b>${esc(r.n)}</b><small>${fmtD(r.km)} • ${typeLabel(r.type)}</small><span class="chip ${lv.c}">${lv.label}</span>${tags}</div>
+    <span class="fav ${fav?'on':''}" onclick="event.stopPropagation();toggleFav('${r.id}')" aria-label="Favorit">${fav?'★':'☆'}</span></div>`;
+}
+function renderRoutes(){
+  $('home-routes').innerHTML=getAllRoutes().filter(r=>r.rec).slice(0,2).map(routeCard).join('');
+  renderExplore();
+}
+function renderExplore(){
+  $('rt-hint').innerHTML=`<span>📍 Rute di sekitar <b style="color:var(--text)">${esc(origin.label)}</b></span>${origin.src==='gps'?'':'<span class="link" onclick="useMyLocation(true)">Gunakan lokasi saya</span>'}`;
+  $('rt-chips').innerHTML=CHIPS.map(([k,l])=>`<button class="tab ${rf.chip===k?'on':''}" onclick="setChip('${k}')">${l}</button>`).join('');
+  renderRouteList();
+}
+function setChip(k){rf.chip=k;renderExplore();}
+function activeFilterCount(){return ['dist','type','level'].filter(k=>rf[k]!=='all').length+(rf.sort!=='rec'?1:0);}
+function filtered(){
+  const q=rf.q.trim().toLowerCase();
+  let L=getAllRoutes().filter(r=>{
+    if(q&&!(r.n.toLowerCase().includes(q)||String(r.d).toLowerCase().includes(q)||typeLabel(r.type).toLowerCase().includes(q)))return false;
+    const k=r.km;
+    if(rf.dist==='lt5'&&!(k<5))return false;
+    if(rf.dist==='b510'&&!(k>=5&&k<=10))return false;
+    if(rf.dist==='gt10'&&!(k>10))return false;
+    if(rf.type!=='all'&&r.type!==rf.type)return false;
+    if(rf.level!=='all'&&levelOf(k).key!==rf.level)return false;
+    if(rf.chip==='d510'&&!(k>=5&&k<=10))return false;
+    if(rf.chip==='loop'&&r.type!=='loop')return false;
+    if(rf.chip==='pemula'&&levelOf(k).key!=='pemula')return false;
+    if(rf.chip==='rec'&&!r.rec)return false;
+    if(rf.chip==='fav'&&!favs.includes(r.id))return false;
+    if(rf.chip==='mine'&&!r.mine)return false;
+    return true;
+  });
+  if(rf.sort==='short')L.sort((a,b)=>a.km-b.km);
+  else if(rf.sort==='long')L.sort((a,b)=>b.km-a.km);
+  return L;
+}
+function renderRouteList(){
+  const L=filtered(),q=rf.q.trim();
+  const loc=q.length>=3?`<div class="loc-row" onclick="searchPlace()">📍 <span>Cari lokasi “<b>${esc(q)}</b>” dan buat rute di sana</span></div>`:'';
+  const n=activeFilterCount();
+  $('ff-badge').textContent=n?'('+n+')':'';
+  const emptyMsg=rf.chip==='fav'?'Belum ada favorit. Ketuk ☆ pada rute untuk menyimpannya.':rf.chip==='mine'?'Belum ada rute buatanmu. Buat lewat Generate Rute Kustom atau simpan dari hasil lari.':'Coba ubah kata kunci atau filter, atau buat rute kustom sendiri.';
+  $('route-list').innerHTML=loc+(L.length
+    ?`<div class="set-note" style="margin:0 2px 10px">${L.length} rute</div>`+L.map(routeCard).join('')
+    :`<div class="empty" style="padding:34px 10px"><div class="e-ic">🧭</div><b>Tidak ada rute yang cocok</b><p>${emptyMsg}</p><button class="btn dark" style="margin-top:14px" onclick="resetAll()">Reset pencarian &amp; filter</button></div>`);
+}
+function resetAll(){rf={...RF0};$('rt-q').value='';renderExplore();if(!$('sheet-filter').classList.contains('hidden'))renderFilterSheet();}
+
+/* sheet filter */
+function showSheet(id){
+  $(id).classList.remove('hidden');
+  if(id==='sheet-filter')renderFilterSheet();
+  if(id==='sheet-gen')initGen();
+}
+function hideSheet(id){$(id).classList.add('hidden');}
+function segF(k,opts){return `<div class="seg">${opts.map(([v,l])=>`<button class="${rf[k]===v?'on':''}" onclick="setF('${k}','${v}')">${l}</button>`).join('')}</div>`;}
+function setF(k,v){rf[k]=v;renderFilterSheet();renderRouteList();}
+function renderFilterSheet(){
+  $('ff-dist').innerHTML=segF('dist',[['all','Semua'],['lt5','&lt; 5 km'],['b510','5–10 km'],['gt10','&gt; 10 km']]);
+  $('ff-type').innerHTML=segF('type',[['all','Semua'],['loop','Loop'],['outback','Pulang-pergi']]);
+  $('ff-level').innerHTML=segF('level',[['all','Semua'],['pemula','Pemula'],['menengah','Menengah'],['lanjut','Lanjut']]);
+  $('ff-sort').innerHTML=segF('sort',[['rec','Rekomendasi'],['short','Terpendek'],['long','Terjauh']]);
+}
+function resetFilter(){rf.dist='all';rf.type='all';rf.level='all';rf.sort='rec';renderFilterSheet();renderRouteList();}
+
+/* generator rute kustom */
+function openGenerator(){go('s-rute');showSheet('sheet-gen');}
+function initGen(){
+  const u=unitMeta(),sl=$('gen-km');
+  sl.max=u.l==='mi'?13:21;if(+sl.value>+sl.max)sl.value=sl.max;
+  $('gen-unit').textContent=u.l;genKmChange();renderGenType();
+  $('gen-note').textContent='Rute dibuat di sekitar '+origin.label+'. Bentuknya acak dengan panjang sesuai target; buat ulang untuk bentuk lain.';
+}
+function genKmChange(){$('gen-km-v').textContent=(+$('gen-km').value).toFixed(1);}
+function renderGenType(){
+  $('gen-type').innerHTML='<div class="seg">'+[['loop','Loop (kembali ke awal)'],['outback','Pulang-pergi']].map(([k,l])=>`<button class="${genType===k?'on':''}" onclick="genType='${k}';renderGenType()">${l}</button>`).join('')+'</div>';
+}
+function doGenerate(){
+  if(myRoutes.length>=50){toast('Maksimal 50 rute tersimpan. Hapus sebagian dulu.');return;}
+  const u=unitMeta(),val=+$('gen-km').value,km=val*u.f/1000;
+  const name=($('gen-name').value.trim()||('Rute '+val.toFixed(1)+' '+u.l)).slice(0,40);
+  const pts=toLL(origin,genShape(Math.floor(Math.random()*1e9),km,genType)).map(p=>[+p[0].toFixed(6),+p[1].toFixed(6)]);
+  const r={id:'m'+Date.now(),n:name,type:genType,pts,created:Date.now(),d:'Rute kustom '+typeLabel(genType).toLowerCase()+' yang dibuat di sekitar '+origin.label+'.'};
+  myRoutes.unshift(r);saveMy();
+  $('gen-name').value='';hideSheet('sheet-gen');renderRoutes();
+  openRoute(r.id);toast('Rute dibuat ✓');
+}
+
+/* detail rute */
+function openRoute(id){
+  const r=getAllRoutes().find(x=>x.id===id);
+  if(!r){toast('Rute tidak ditemukan');return;}
+  curRoute=r;go('s-rute-detail');
+}
+function renderDetail(){
+  const r=curRoute&&getAllRoutes().find(x=>x.id===curRoute.id);
+  if(!r){go('s-rute');return;}
+  curRoute=r;
+  const lv=levelOf(r.km),pace=avgPace(),fav=favs.includes(r.id);
+  $('rd-body').innerHTML=`<div class="rd-map" id="rd-map"></div>
+  <h2 style="font-size:20px;font-weight:800;">${esc(r.n)}</h2>
+  <div style="margin:8px 0 2px;"><span class="chip ${lv.c}">${lv.label}</span> <span class="chip gray">${typeLabel(r.type)}</span>${r.mine?' <span class="chip green">Buatanku</span>':''}${r.rec?' <span class="chip gray">Rekomendasi</span>':''}</div>
+  <p style="color:var(--muted);font-size:13px;line-height:1.55;margin:10px 0 14px;">${esc(r.d)}</p>
+  <div class="pstats">
+    <div class="pstat"><b>${fmtD(r.km)}</b><span>Jarak</span></div>
+    <div class="pstat"><b>${fmtDur(r.km*pace.sec)}</b><span>Estimasi waktu</span></div>
+    <div class="pstat"><b>${pace.show}</b><span>${pace.label}</span></div>
+  </div>
+  <button class="btn big-cta" onclick="startRoute()">▶&nbsp;&nbsp;MULAI RUTE INI</button>
+  <div class="rd-actions">
+    <button class="btn dark" onclick="toggleFav('${r.id}')">${fav?'★ Favorit':'☆ Favorit'}</button>
+    <button class="btn dark" onclick="shareRoute()">Bagikan</button>
+    <button class="btn dark" onclick="downloadGpx()">Unduh GPX</button>
+  </div>
+  ${r.mine?`<button class="btn danger-btn" onclick="deleteRoute('${r.id}')">Hapus rute</button>`:''}
+  <p class="set-note">Estimasi waktu dihitung dari pace rata-rata riwayat lari Anda (atau pace standar bila belum ada riwayat). Titik hijau adalah titik awal.</p>`;
+  drawDetailMap(r);
+}
+function drawDetailMap(r){
+  const el=$('rd-map');if(!el)return;
+  if(dmap){try{dmap.remove();}catch(e){}dmap=null;}
+  if(typeof L==='undefined'){el.innerHTML=thumb(r.pts,'100%','100%');return;}
+  dmap=L.map(el,{zoomControl:false,attributionControl:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(dmap);
+  const line=L.polyline(r.pts,{color:'#D9F100',weight:5,lineCap:'round',lineJoin:'round'}).addTo(dmap);
+  L.circleMarker(r.pts[0],{radius:7,color:'#0A0E13',weight:3,fillColor:'#3ECF8E',fillOpacity:1}).addTo(dmap);
+  if(r.type==='outback')L.circleMarker(r.pts[Math.floor(r.pts.length/2)],{radius:7,color:'#0A0E13',weight:3,fillColor:'#FF5C5C',fillOpacity:1}).addTo(dmap);
+  if(r.type==='recorded')L.circleMarker(r.pts[r.pts.length-1],{radius:7,color:'#0A0E13',weight:3,fillColor:'#FF5C5C',fillOpacity:1}).addTo(dmap);
+  dmap.fitBounds(line.getBounds(),{padding:[26,26]});
+  setTimeout(()=>{if(dmap){dmap.invalidateSize();dmap.fitBounds(line.getBounds(),{padding:[26,26]});}},250);
+}
+function toggleFav(id){
+  const i=favs.indexOf(id);
+  if(i>=0){favs.splice(i,1);toast('Dihapus dari favorit');}else{favs.push(id);toast('Ditambahkan ke favorit ★');}
+  saveFavs();
+  const a=document.querySelector('.screen.active');
+  if(a&&a.id==='s-rute-detail')renderDetail();else renderRoutes();
+}
+function shareRoute(){
+  const r=curRoute;if(!r)return;
+  const text=r.n+' — '+fmtD(r.km)+' ('+typeLabel(r.type)+') di AYO BERLARI';
+  if(navigator.share){navigator.share({title:r.n,text}).catch(()=>{});}
+  else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>toast('Teks rute disalin 📋'),()=>toast('Tidak bisa menyalin teks'));}
+  else toast('Fitur bagikan tidak didukung di browser ini');
+}
+function shareRun(){
+  const u=unitMeta(),text='Lari selesai: '+(dist/u.f).toFixed(2)+' '+u.l+' dalam '+fmt(secs)+' (pace '+paceStr(secs,dist)+' /'+u.l+') — AYO BERLARI';
+  if(navigator.share){navigator.share({title:'Lari saya',text}).catch(()=>{});}
+  else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>toast('Ringkasan lari disalin 📋'),()=>toast('Tidak bisa menyalin teks'));}
+  else toast('Fitur bagikan tidak didukung di browser ini');
+}
+function downloadGpx(){
+  const r=curRoute;if(!r)return;
+  const gpx='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="AYO BERLARI" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>'+esc(r.n)+'</name><trkseg>'+r.pts.map(p=>'<trkpt lat="'+p[0].toFixed(6)+'" lon="'+p[1].toFixed(6)+'"/>').join('')+'</trkseg></trk></gpx>';
+  const url=URL.createObjectURL(new Blob([gpx],{type:'application/gpx+xml'}));
+  const a=document.createElement('a');a.href=url;a.download=(r.n.replace(/[^\w\-]+/g,'_')||'rute')+'.gpx';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('File GPX diunduh ✓');
+}
+function deleteRoute(id){
+  if(!confirm('Hapus rute ini? Tindakan ini tidak bisa dibatalkan.'))return;
+  myRoutes=myRoutes.filter(r=>r.id!==id);favs=favs.filter(f=>f!==id);saveMy();saveFavs();
+  curRoute=null;go('s-rute');toast('Rute dihapus');
+}
+function saveRunAsRoute(){
+  if(savedThisRun){toast('Rute ini sudah disimpan');return;}
+  if(track.length<2){toast('Tidak ada jejak lari untuk disimpan');return;}
+  if(myRoutes.length>=50){toast('Maksimal 50 rute tersimpan. Hapus sebagian dulu.');return;}
+  const step=Math.ceil(track.length/200);
+  const pts=track.filter((_,i)=>i%step===0||i===track.length-1).map(p=>[+p[0].toFixed(6),+p[1].toFixed(6)]);
+  const d=new Date().toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  myRoutes.unshift({id:'m'+Date.now(),n:'Lari '+d,type:'recorded',pts,created:Date.now(),d:'Rute dari rekaman lari Anda pada '+d+'.'});
+  saveMy();savedThisRun=true;toast('Rute disimpan di Eksplorasi › Buatanku ⭐');
+}
+
+/* mulai lari */
+function freeRun(){activeRoute=null;startRun();}
+function startRoute(){if(!curRoute)return;activeRoute=curRoute;startRun();}
+function startCenter(){return activeRoute?activeRoute.pts[0]:[origin.lat,origin.lng];}
+function drawGuide(){
+  guideLine=null;
+  if(!activeRoute||!map)return;
+  guideLine=L.polyline(activeRoute.pts,{color:'#0F9D58',weight:5,opacity:.9,dashArray:'8 8'}).addTo(map);
+  map.fitBounds(guideLine.getBounds(),{padding:[22,22]});
+}
+function updateRouteTag(){
+  const t=$('route-tag');
+  if(activeRoute){t.textContent='🧭 '+activeRoute.n;t.classList.remove('hidden');}else t.classList.add('hidden');
+}
+
+
+/* ---- profil: statistik & rekor pribadi (dari riwayat lari) ---- */
+let prs={}; // rekor tersimpan per akun, bertahan walau riwayat dibatasi 20 lari
+const PR_DEFS=[{k:'5',km:5,n:'5K'},{k:'10',km:10,n:'10K'},{k:'42',km:42.195,n:'Maraton'}];
+function secOf(t){const p=String(t).split(':').map(Number);return p.length===3?p[0]*3600+p[1]*60+p[2]:(p[0]||0)*60+(p[1]||0);}
+function fmtHMS(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(ss).padStart(2,'0');}
+function prCandidate(km,sec,date,def){return km>=def.km&&sec>0?{sec:Math.round(sec*def.km/km),date:date}:null;}
+function computePRs(){
+  const out={};
+  PR_DEFS.forEach(d=>{
+    let best=prs[d.k]||null;
+    runs.forEach(r=>{const c=prCandidate(r.km,secOf(r.t),r.date,d);if(c&&(!best||c.sec<best.sec))best=c;});
+    if(best)out[d.k]=best;
+  });
+  return out;
+}
+function updatePRs(km,sec,date){
+  PR_DEFS.forEach(d=>{const c=prCandidate(km,sec,date,d);if(c&&(!prs[d.k]||c.sec<prs[d.k].sec))prs[d.k]=c;});
+  if(session)try{localStorage.setItem('ab_pr_'+session.email,JSON.stringify(prs));}catch(e){}
+}
+function renderProfile(){
+  const st=$('profil-stats'),pr=$('profil-prs');if(!st||!pr)return;
+  const u=unitMeta();let km=0,sec=0;
+  runs.forEach(r=>{km+=r.km;sec+=secOf(r.t);});
+  const has=runs.length>0&&km>0;
+  st.innerHTML=`<div class="pstat"><b>${has?(km*1000/u.f).toFixed(1)+' '+u.l:'—'}</b><span>Total Jarak</span></div>
+    <div class="pstat"><b>${has?fmtDur(sec):'—'}</b><span>Total Waktu</span></div>
+    <div class="pstat"><b>${has&&km>=0.05?paceStr(sec,km*1000)+' /'+u.l:'—'}</b><span>Pace rata-rata</span></div>`;
+  const p=computePRs(),keys=PR_DEFS.filter(d=>p[d.k]);
+  pr.innerHTML=keys.length?keys.map(d=>`<div class="menu-item" onclick="toast('Rekor ${d.n}: ${fmtHMS(p[d.k].sec)} 🏅')"><div class="mi">🏅</div>${d.n} — ${fmtHMS(p[d.k].sec)} <span class="arr">${p[d.k].date} ›</span></div>`).join('')
+    :`<div class="empty" style="padding:26px 16px;"><div class="e-ic" style="font-size:34px;">🏅</div><b>Belum ada rekor</b><p>Rekor 5K, 10K, dan Maraton muncul otomatis setelah Anda menyelesaikan lari dengan jarak tersebut.</p></div>`;
+}
+
+/* ---- riwayat ---- */
+let runs=[]; // dimuat per akun saat login
+const seedRuns=[]; // riwayat dimulai kosong untuk setiap akun
+function renderHistory(){
+  const u=unitMeta();
+  const all=[...runs.map(r=>({n:'Lari '+r.date,km:r.km,t:r.t,d:r.date})),...seedRuns];
+  $('history-list').innerHTML=all.map(r=>{
+    const [mm,ss]=String(r.t).split(':').map(Number),sec=(mm||0)*60+(ss||0);
+    return `<div class="list-item" onclick="go('s-riwayat')">
+    <div class="ic">🏃</div><div><b>${r.n}</b><small>${r.d}</small></div>
+    <div class="nums"><b>${(r.km*1000/u.f).toFixed(2)} ${u.l}</b><br><small>${r.t} • ${paceStr(sec,r.km*1000)} /${u.l}</small></div></div>`;}).join('')||'<p style="color:var(--muted);text-align:center;margin-top:30px;">Belum ada aktivitas</p>';
+}
+
+/* ---- run engine ---- */
+let timer=null,secs=0,dist=0,paused=false,speed=2.85+Math.random()*.5;
+let watchId=null,gpsMode=false,track=[],lastPos=null,map=null,poly=null,mk=null,simInt=null;
+function fmt(s){const m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+function hav(a,b){
+  const R=6371000,t=Math.PI/180;
+  const dLa=(b[0]-a[0])*t,dLo=(b[1]-a[1])*t;
+  const h=Math.sin(dLa/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+let cdTimer=null,autoPaused=false,lastMove=0,lastWhole=0,goalHit=false;
+function startRun(){
+  if(!session){go('s-login');toast('Masuk dulu untuk mulai berlari');return;}
+  const n=settings.countdown;
+  if(n>0){
+    let c=n;$('cd-n').textContent=c;$('cd').classList.remove('hidden');
+    clearInterval(cdTimer);
+    cdTimer=setInterval(()=>{
+      c--;
+      if(c<=0){cancelCountdown();beginRun();}else $('cd-n').textContent=c;
+    },1000);
+  } else beginRun();
+}
+function cancelCountdown(){clearInterval(cdTimer);cdTimer=null;$('cd').classList.add('hidden');}
+function beginRun(){
+  secs=0;dist=0;paused=false;track=[];lastPos=null;gpsMode=false;
+  autoPaused=false;lastMove=Date.now();lastWhole=0;goalHit=false;routeDone=false;savedThisRun=false;
+  speed=2.7+Math.random()*.6;
+  $('btn-pause').textContent='❚❚';$('pause-ov').classList.remove('show');
+  applyUnitLabels();updateRouteTag();tickUI();
+  go('s-run');
+  setTimeout(initMap,80);
+  clearInterval(timer);
+  timer=setInterval(()=>{if(!paused){secs++;tickUI();checkAutoPause();}},1000);
+  stopSim();
+  if(settings.gpsOn&&'geolocation' in navigator){
+    $('gps-pulse').innerHTML='<i></i> Mencari sinyal GPS...';
+    watchId=navigator.geolocation.watchPosition(onPos,geoFail,{enableHighAccuracy:!!settings.gpsHigh,maximumAge:1000,timeout:12000});
+  } else {
+    if(!settings.gpsOn)toast('GPS dimatikan di pengaturan — mode simulasi');
+    simStart();
+  }
+}
+function checkAutoPause(){
+  if(settings.autoPause&&gpsMode&&!paused&&Date.now()-lastMove>8000){
+    autoPaused=true;pauseToggle(true);toast('Auto-pause: Anda berhenti ⏸');
+  }
+}
+function initMap(){
+  if(map){map.remove();map=null;}
+  map=L.map('map',{zoomControl:false,attributionControl:true,zoomSnap:.5}).setView(startCenter(),16);
+  map.attributionControl.setPrefix(false);
+  /* gaya peta terang ala Google Maps (CARTO Voyager, data OpenStreetMap) */
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20,attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+  poly=L.polyline([],{color:'#1A73E8',weight:6,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(map);
+  mk=L.circleMarker(startCenter(),{radius:9,color:'#fff',weight:3,fillColor:'#1A73E8',fillOpacity:1}).addTo(map);
+  drawGuide();
+  setTimeout(()=>{if(map)map.invalidateSize();},200);
+}
+function onPos(p){
+  const c=p.coords,pt=[c.latitude,c.longitude];
+  if(!gpsMode){gpsMode=true;stopSim();toast('GPS aktif — melacak pergerakan Anda 📍');}
+  $('gps-pulse').innerHTML='<i></i> GPS aktif • ±'+Math.round(c.accuracy)+' m';
+  if(mk){mk.setLatLng(pt);if(!track.length)map.setView(pt,17,{animate:false});else map.panTo(pt,{animate:true});}
+  if(paused){
+    if(autoPaused&&lastPos&&hav(lastPos,pt)>4&&c.accuracy<60){autoPaused=false;lastMove=Date.now();pauseToggle(true);toast('Lari dilanjutkan ▶');}
+    lastPos=pt;return;
+  }
+  if(lastPos){
+    const d=hav(lastPos,pt);
+    if(d<150 && c.accuracy<60){dist+=d;if(d>1.5)lastMove=Date.now();}
+  }
+  lastPos=pt;track.push(pt);
+  if(poly)poly.setLatLngs(track);
+  tickUI();
+}
+function geoFail(e){
+  if(settings.gpsFallback){
+    toast('Izin GPS ditolak / tidak tersedia — mode simulasi');
+    simStart();
+  } else {
+    $('gps-pulse').innerHTML='<i></i> GPS tidak tersedia';
+    toast('GPS tidak tersedia. Aktifkan izin lokasi atau nyalakan mode simulasi di Pengaturan.');
+  }
+}
+function simStart(){
+  if(simInt||gpsMode)return;
+  $('gps-pulse').innerHTML='<i></i> Mode Simulasi';
+  simInt=setInterval(()=>{
+    if(paused||gpsMode)return;
+    dist+=speed;
+    if(activeRoute&&map){
+      const gp=pointAlong(activeRoute,dist);
+      if(!track.length||hav(track[track.length-1],gp)>0.5){track.push(gp);poly.setLatLngs(track);mk.setLatLng(gp);map.panTo(gp);}
+      if(!routeDone&&dist>=activeRoute.len){routeDone=true;announce('Rute selesai! 🎉');}
+    } else if(map){
+      if(track.length===0){const c=map.getCenter();track.push([c.lat,c.lng]);}
+      const n=track.length,base=track[0];
+      const pt=[base[0]+0.00006*n,base[1]+0.00011*Math.sin(n/9)];
+      if(hav(track[track.length-1],pt)>1){track.push(pt);poly.setLatLngs(track);mk.setLatLng(pt);map.panTo(pt);}
+    }
+    tickUI();
+  },1000);
+}
+function stopSim(){clearInterval(simInt);simInt=null;}
+function stopTracking(){
+  clearInterval(timer);stopSim();
+  if(watchId!==null&&navigator.geolocation){navigator.geolocation.clearWatch(watchId);watchId=null;}
+}
+function tickUI(){
+  const u=unitMeta(),d=dist/u.f;
+  $('r-km').textContent=d.toFixed(2);$('r-time').textContent=fmt(secs);
+  $('r-pace').textContent=paceStr(secs,dist);
+  $('r-kcal').textContent=Math.round(dist/1000*72);
+  $('r-step').textContent=(gpsMode?Math.round(dist*1.32):Math.round(dist*1.35)).toLocaleString('id');
+  const whole=Math.floor(d);
+  if(whole>lastWhole){lastWhole=whole;announce(whole+' '+u.name.toLowerCase()+' tercapai. Waktu '+fmt(secs));}
+  if(settings.goalKm>0&&!goalHit&&d>=settings.goalKm){goalHit=true;announce('Target '+settings.goalKm+' '+u.l+' tercapai! 🎯');}
+}
+function announce(msg){
+  toast(msg);
+  if(settings.vibrate&&navigator.vibrate)try{navigator.vibrate([180,80,180]);}catch(e){}
+  if(settings.voice&&'speechSynthesis' in window){
+    try{const s=new SpeechSynthesisUtterance(msg.replace(/[^\p{L}\p{N}\s.,]/gu,''));s.lang='id-ID';speechSynthesis.cancel();speechSynthesis.speak(s);}catch(e){}
+  }
+}
+function pauseToggle(auto){
+  if(auto!==true)autoPaused=false;
+  paused=!paused;
+  if(!paused)lastMove=Date.now();
+  $('btn-pause').textContent=paused?'▶':'❚❚';
+  $('pause-ov').classList.toggle('show',paused);
+  if(paused){$('p-km').textContent=(dist/unitMeta().f).toFixed(2);}
+}
+function stopRun(){
+  stopTracking();
+  if(dist>20){finishRun();}else{go('s-home');toast('Lari dibatalkan');}
+}
+function drawSummary(){
+  const g=$('sum-track');let pts=track;
+  if(!pts||pts.length<2)pts=[[0,0],[0.01,0.004],[0.02,0.001],[0.03,0.007],[0.04,0.003]];
+  const lats=pts.map(p=>p[0]),lons=pts.map(p=>p[1]);
+  const minLa=Math.min(...lats),maxLa=Math.max(...lats),minLo=Math.min(...lons),maxLo=Math.max(...lons);
+  const pad=16,W=370-2*pad,H=170-2*pad;
+  const sx=maxLa-minLa||1e-6,sy=maxLo-minLo||1e-6;
+  const sc=Math.min(H/sx,W/sy);
+  const offX=pad+(W-sy*sc)/2,offY=pad+(H-sx*sc)/2;
+  const coords=pts.map(p=>[(offX+(p[1]-minLo)*sc).toFixed(1),(offY+(maxLa-p[0])*sc).toFixed(1)]);
+  const pathStr=coords.map(c=>c.join(',')).join(' ');
+  g.innerHTML='<polyline points="'+pathStr+'" fill="none" stroke="#D9F100" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
+    +(settings.hideStart?'':'<circle cx="'+coords[0][0]+'" cy="'+coords[0][1]+'" r="7" fill="#3ECF8E" stroke="#0A0E13" stroke-width="3"/>')
+    +'<circle cx="'+coords[coords.length-1][0]+'" cy="'+coords[coords.length-1][1]+'" r="7" fill="#FF5C5C" stroke="#0A0E13" stroke-width="3"/>';
+}
+function finishRun(){
+  stopTracking();paused=false;$('pause-ov').classList.remove('show');
+  const km=dist/1000,u=unitMeta();
+  applyUnitLabels();
+  $('f-km').textContent=(dist/u.f).toFixed(2);$('f-time').textContent=fmt(secs);
+  $('f-pace').textContent=paceStr(secs,dist);
+  $('f-kcal').textContent=Math.round(km*72);
+  $('f-step').textContent=(gpsMode?Math.round(dist*1.32):Math.round(dist*1.35)).toLocaleString('id');
+  drawSummary();
+  if(km>0.01&&settings.saveHistory){const now=new Date();runs.unshift({km:+km.toFixed(2),t:fmt(secs),p:km>0.02?fmt(Math.round(secs/km))+' /km':'--',date:now.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})});updatePRs(km,secs,now.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}));if(session)localStorage.setItem('ab_runs_'+session.email,JSON.stringify(runs.slice(0,20)));}
+  go('s-finish');
+}
+function finishDone(){activeRoute=null;go('s-home');toast('Aktivitas tersimpan 🎉');}
+
+/* ---- PENGATURAN (disimpan per akun) ---- */
+const DEFAULTS={unit:'km',notifRemind:false,notifTime:'06:00',hideStart:false,saveHistory:true,
+  gpsOn:true,gpsHigh:true,gpsFallback:true,countdown:3,autoPause:false,goalKm:0,voice:false,vibrate:true};
+let settings={...DEFAULTS};
+function loadSettings(){try{settings={...DEFAULTS,...JSON.parse(localStorage.getItem('ab_settings_'+session.email)||'{}')};}catch(e){settings={...DEFAULTS};}}
+function saveSettings(){if(session)localStorage.setItem('ab_settings_'+session.email,JSON.stringify(settings));}
+
+function unitMeta(){return settings.unit==='mi'?{f:1609.344,l:'mi',name:'Mil'}:{f:1000,l:'km',name:'Kilometer'};}
+function paceStr(sec,distM){const d=distM/unitMeta().f;return d>0.02?fmt(Math.round(sec/d)):'--:--';}
+function applyUnitLabels(){
+  const u=unitMeta();
+  $('r-unit').textContent=u.name;$('r-paceu').textContent='Pace /'+u.l;
+  $('f-unit').textContent='Jarak ('+u.l+')';$('f-paceu').textContent='Pace rata-rata /'+u.l;
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function tg(k,label,desc){
+  return `<div class="set-row"><div><b>${label}</b>${desc?`<small>${desc}</small>`:''}</div>
+  <label class="sw"><input type="checkbox" ${settings[k]?'checked':''} onchange="onToggle('${k}',this.checked)"><i></i></label></div>`;
+}
+function seg(k,opts){
+  return `<div class="seg">${opts.map(([v,l])=>`<button class="${String(settings[k])===String(v)?'on':''}" onclick="onSeg('${k}','${v}')">${l}</button>`).join('')}</div>`;
+}
+function onToggle(k,v){settings[k]=v;saveSettings();if(k==='notifRemind'&&v)askNotifPerm();rerender();}
+function onSeg(k,v){if(typeof DEFAULTS[k]==='number')v=Number(v);settings[k]=v;saveSettings();rerender();}
+function rerender(){const a=document.querySelector('.screen.active');if(a&&a.id.startsWith('s-set-'))renderSettings(a.id);}
+function renderSettings(id){
+  const f={'s-set-akun':rAkun,'s-set-unit':rUnit,'s-set-notif':rNotif,'s-set-privasi':rPrivasi,'s-set-gps':rGps,'s-set-lari':rLari}[id];
+  if(f&&session)f();
+}
+function refreshMenu(){
+  if(!session)return;
+  $('sv-akun').textContent=session.name+' ›';
+  $('sv-unit').textContent=unitMeta().l+' ›';
+  $('sv-notif').textContent=(settings.notifRemind?'Aktif '+settings.notifTime:'Mati')+' ›';
+  $('sv-privasi').textContent='›';
+  $('sv-gps').textContent=(settings.gpsOn?'GPS aktif':'Simulasi')+' ›';
+  $('sv-lari').textContent=(settings.goalKm>0?'Target '+settings.goalKm+' '+unitMeta().l:'Tanpa target')+' ›';
+}
+
+/* Unit */
+function rUnit(){
+  $('set-unit').innerHTML=`<div class="set-group">Satuan jarak</div>${seg('unit',[['km','Kilometer (km)'],['mi','Mil (mi)']])}
+  <div class="set-note">Dipakai untuk jarak, pace, target, dan riwayat. Contoh: 5 km = ${(5000/1609.344).toFixed(2)} mi. Data lari tetap tersimpan akurat; hanya tampilannya yang berubah.</div>`;
+}
+
+/* Notifikasi */
+function permText(){
+  if(!('Notification' in window))return 'Browser ini tidak mendukung notifikasi sistem. Pengingat tetap muncul di dalam aplikasi.';
+  return {granted:'Izin notifikasi sistem: diizinkan ✓',denied:'Izin notifikasi sistem: diblokir. Aktifkan lewat pengaturan situs di browser. Pengingat tetap muncul di dalam aplikasi.',default:'Izin notifikasi sistem: belum diminta.'}[Notification.permission];
+}
+function askNotifPerm(){if('Notification' in window&&Notification.permission==='default')Notification.requestPermission().then(rerender);}
+function rNotif(){
+  $('set-notif').innerHTML=tg('notifRemind','Pengingat lari harian','Ingatkan saya berlari setiap hari pada jam yang dipilih')
+  +`<div class="set-row"><div><b>Jam pengingat</b></div><input type="time" value="${settings.notifTime}" onchange="setTime(this.value)" style="background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--text);font-size:14px;color-scheme:dark;"></div>
+  <div class="set-status">${permText()}</div>
+  <button class="btn dark" onclick="testNotif()">Kirim notifikasi tes</button>
+  <div class="set-note">Pengingat bekerja selama aplikasi ini terbuka di browser. Aplikasi web tidak bisa mengirim notifikasi saat benar-benar tertutup.</div>`;
+}
+function setTime(v){if(/^\d\d:\d\d$/.test(v)){settings.notifTime=v;saveSettings();toast('Pengingat diatur pukul '+v);}}
+function notify(title,body){
+  toast(title+' — '+body);
+  if('Notification' in window&&Notification.permission==='granted'){try{new Notification(title,{body});}catch(e){}}
+}
+function testNotif(){askNotifPerm();notify('AYO BERLARI','Ini notifikasi tes 🔔');}
+let lastRemind='';
+setInterval(()=>{
+  if(!session||!settings.notifRemind)return;
+  const d=new Date(),hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),key=d.toDateString()+hm;
+  if(hm===settings.notifTime&&lastRemind!==key){lastRemind=key;notify('Waktunya berlari! 🏃','Yuk mulai lari hari ini, '+session.name+'.');}
+},15000);
+
+/* Privasi */
+function rPrivasi(){
+  $('set-privasi').innerHTML=tg('saveHistory','Simpan riwayat aktivitas','Jika dimatikan, lari baru tidak disimpan ke riwayat')
+  +tg('hideStart','Sembunyikan titik awal rute','Titik awal (hijau) tidak ditampilkan pada ringkasan lari')
+  +`<div class="set-group">Data saya</div>
+  <button class="btn dark" onclick="exportData()">Unduh data saya (JSON)</button>
+  <button class="btn danger-btn" onclick="clearHistory()">Hapus riwayat aktivitas</button>
+  <div class="set-note">Semua data disimpan hanya di perangkat ini (browser Anda) dan tidak dikirim ke server.</div>`;
+}
+function exportData(){
+  const acc=loadAccounts()[session.email]||{};
+  const data={akun:{nama:session.name,email:session.email,dibuat:acc.created?new Date(acc.created).toISOString():null},pengaturan:settings,riwayat:runs,ruteTersimpan:myRoutes,favorit:favs};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='ayo-berlari-data.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Data diunduh ✓');
+}
+function clearHistory(){
+  if(!runs.length){toast('Riwayat sudah kosong');return;}
+  if(!confirm('Hapus semua riwayat aktivitas? Tindakan ini tidak bisa dibatalkan.'))return;
+  runs=[];prs={};localStorage.removeItem('ab_runs_'+session.email);localStorage.removeItem('ab_pr_'+session.email);renderProfile();toast('Riwayat dihapus');
+}
+
+/* GPS & Lokasi */
+function rGps(){
+  $('set-gps').innerHTML=tg('gpsOn','Gunakan GPS perangkat','Matikan untuk memakai mode simulasi (data lari demo)')
+  +tg('gpsHigh','Akurasi tinggi','Lebih akurat tetapi memakai lebih banyak baterai')
+  +tg('gpsFallback','Mode simulasi jika GPS gagal','Jika izin ditolak atau tidak ada sinyal, lari dilanjutkan dengan simulasi')
+  +`<div class="set-group">Status izin lokasi</div><div class="set-status" id="gps-status">Memeriksa…</div>
+  <button class="btn dark" onclick="testGps()">Tes lokasi sekarang</button>`;
+  checkGpsPerm();
+}
+function checkGpsPerm(){
+  const el=$('gps-status');if(!el)return;
+  if(!('geolocation' in navigator)){el.textContent='Perangkat/browser ini tidak mendukung geolokasi.';return;}
+  if(!navigator.permissions||!navigator.permissions.query){el.textContent='Status izin tidak bisa dibaca di browser ini. Gunakan "Tes lokasi sekarang".';return;}
+  navigator.permissions.query({name:'geolocation'}).then(p=>{
+    const t={granted:'Diizinkan ✓',denied:'Diblokir — aktifkan izin lokasi lewat pengaturan situs di browser.',prompt:'Belum diminta — akan ditanyakan saat Anda mulai berlari atau menekan tes.'}[p.state];
+    const e2=$('gps-status');if(e2)e2.textContent=t;
+  }).catch(()=>{const e2=$('gps-status');if(e2)e2.textContent='Status izin tidak bisa dibaca.';});
+}
+function testGps(){
+  const el=$('gps-status');
+  if(!('geolocation' in navigator)){toast('Geolokasi tidak didukung');return;}
+  el.textContent='Mencari lokasi…';
+  navigator.geolocation.getCurrentPosition(
+    p=>{el.textContent='Lokasi ditemukan ✓ Akurasi ±'+Math.round(p.coords.accuracy)+' m';},
+    e=>{el.textContent={1:'Izin lokasi ditolak.',2:'Lokasi tidak tersedia (sinyal lemah).',3:'Waktu pencarian habis.'}[e.code]||'Gagal mendapatkan lokasi.';},
+    {enableHighAccuracy:!!settings.gpsHigh,timeout:12000});
+}
+
+/* Pengaturan Lari */
+function rLari(){
+  const u=unitMeta();
+  $('set-lari').innerHTML=`<div class="set-group">Hitung mundur sebelum mulai</div>${seg('countdown',[[0,'Mati'],[3,'3 dtk'],[5,'5 dtk'],[10,'10 dtk']])}
+  <div class="set-group">Target jarak (${u.l})</div>${seg('goalKm',[[0,'Tanpa'],[3,'3'],[5,'5'],[10,'10'],[21,'21']])}
+  <div class="set-group">Saat berlari</div>`
+  +tg('autoPause','Auto-pause','Jeda otomatis saat Anda berhenti ±8 detik (hanya dengan GPS asli)')
+  +tg('vibrate','Getar','Getar tiap jarak penuh dan saat target tercapai (jika perangkat mendukung)')
+  +tg('voice','Suara pengumuman','Ucapkan jarak dan waktu setiap jarak penuh');
+}
+
+/* Akun */
+const ACC_IDS=['acc-name','acc-old','acc-new','acc-new2','acc-del'];
+function rAkun(){
+  $('set-akun').innerHTML=`<div class="form-error" id="acc-error" role="alert"></div>
+  <div class="set-group">Profil</div>
+  <div class="field"><label for="acc-name">Nama</label><input type="text" id="acc-name" value="${esc(session.name)}"></div>
+  <div class="field"><label>Email</label><input type="text" value="${esc(session.email)}" disabled style="opacity:.6"></div>
+  <button class="btn" onclick="saveName()">Simpan nama</button>
+  <div class="set-group">Ganti kata sandi</div>
+  <div class="field"><label for="acc-old">Kata sandi saat ini</label><input type="password" id="acc-old" autocomplete="current-password"></div>
+  <div class="field"><label for="acc-new">Kata sandi baru</label><input type="password" id="acc-new" autocomplete="new-password" placeholder="Min. 8 karakter, huruf &amp; angka"></div>
+  <div class="field"><label for="acc-new2">Ulangi kata sandi baru</label><input type="password" id="acc-new2" autocomplete="new-password"></div>
+  <button class="btn dark" onclick="changePass()">Ubah kata sandi</button>
+  <div class="set-group">Hapus akun</div>
+  <div class="set-note" style="margin-top:0">Menghapus akun beserta riwayat dan pengaturannya secara permanen dari perangkat ini.</div>
+  <div class="field"><label for="acc-del">Masukkan kata sandi untuk konfirmasi</label><input type="password" id="acc-del" autocomplete="current-password"></div>
+  <button class="btn danger-btn" onclick="deleteAccount()">Hapus akun saya</button>`;
+}
+function saveName(){
+  clearErr('acc-error',ACC_IDS);
+  const n=$('acc-name').value.trim();
+  if(n.length<2)return showErr('acc-error','Nama minimal 2 karakter.',['acc-name']);
+  const accs=loadAccounts();if(!accs[session.email])return;
+  accs[session.email].name=n;saveAccounts(accs);
+  session.name=n;localStorage.setItem(SES_KEY,JSON.stringify(session));setUser(n);toast('Nama diperbarui ✓');
+}
+async function changePass(){
+  clearErr('acc-error',ACC_IDS);
+  const o=$('acc-old').value,p1=$('acc-new').value,p2=$('acc-new2').value;
+  const accs=loadAccounts(),acc=accs[session.email];
+  if(!acc)return showErr('acc-error','Akun tidak ditemukan.',[]);
+  if(!o)return showErr('acc-error','Masukkan kata sandi saat ini.',['acc-old']);
+  if(await hashPass(o,acc.salt)!==acc.hash)return showErr('acc-error','Kata sandi saat ini salah.',['acc-old']);
+  if(p1.length<8||!/[A-Za-z]/.test(p1)||!/\d/.test(p1))return showErr('acc-error','Kata sandi baru minimal 8 karakter dan harus mengandung huruf serta angka.',['acc-new']);
+  if(p1!==p2)return showErr('acc-error','Konfirmasi kata sandi baru tidak sama.',['acc-new2']);
+  if(p1===o)return showErr('acc-error','Kata sandi baru harus berbeda dari yang lama.',['acc-new']);
+  const salt=randSalt();acc.salt=salt;acc.hash=await hashPass(p1,salt);saveAccounts(accs);
+  ['acc-old','acc-new','acc-new2'].forEach(i=>$(i).value='');
+  toast('Kata sandi berhasil diubah ✓');
+}
+async function deleteAccount(){
+  clearErr('acc-error',ACC_IDS);
+  const accs=loadAccounts(),acc=accs[session.email],pw=$('acc-del').value;
+  if(!acc)return;
+  if(!pw)return showErr('acc-error','Masukkan kata sandi untuk menghapus akun.',['acc-del']);
+  if(await hashPass(pw,acc.salt)!==acc.hash)return showErr('acc-error','Kata sandi salah. Akun tidak dihapus.',['acc-del']);
+  if(!confirm('Hapus akun secara permanen? Riwayat dan pengaturan ikut terhapus.'))return;
+  const em=session.email;
+  delete accs[em];saveAccounts(accs);
+  localStorage.removeItem('ab_runs_'+em);localStorage.removeItem('ab_pr_'+em);localStorage.removeItem('ab_settings_'+em);localStorage.removeItem('ab_fav_'+em);localStorage.removeItem('ab_myroutes_'+em);
+  doLogout();toast('Akun dihapus.');
+}
+
+/* ---- clock ---- */
+function clock(){const d=new Date();$('clock').textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');}
+clock();setInterval(clock,15000);
+renderRoutes();
+/* pulihkan sesi hanya jika akunnya masih valid */
+(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem(SES_KEY)||'null');
+    const acc=s&&loadAccounts()[s.email];
+    if(acc){startSession(s.email,acc.name);go('s-home');}
+    else localStorage.removeItem(SES_KEY);
+  }catch(e){localStorage.removeItem(SES_KEY);}
+  if(!session)prefillLogin();
+})();
+</script>
+</body>
+</html>
