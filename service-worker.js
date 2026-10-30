@@ -1,6 +1,6 @@
 /* AYO BERLARI — service worker: membuat aplikasi bisa dibuka offline.
    Naikkan VERSION setiap kali index.html diperbarui agar pengguna mendapat versi baru. */
-const VERSION = 'ab-v1';
+const VERSION = 'ab-v2';
 const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const LIBS = ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
 
