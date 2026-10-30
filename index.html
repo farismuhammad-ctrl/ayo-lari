@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AYO BERLARI — Aplikasi Lari</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0E13">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AYO BERLARI">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -424,12 +432,12 @@ body{
     <section class="screen" id="s-home">
       <div class="greet">
         <div><p>Selamat datang,</p><h2 id="home-name">Rian!</h2></div>
-        <div class="avatar" onclick="go('s-profil')">R</div>
+        <div class="avatar" id="home-ava" onclick="go('s-profil')">R</div>
       </div>
       <div class="stat-row">
-        <div class="stat"><b>12.8 km</b><span>Hari Ini</span></div>
-        <div class="stat"><b>1:24:36</b><span>Waktu</span></div>
-        <div class="stat"><b>6:35</b><span>Pace</span></div>
+        <div class="stat"><b id="hs-km">—</b><span>Hari Ini</span></div>
+        <div class="stat"><b id="hs-time">—</b><span>Waktu</span></div>
+        <div class="stat"><b id="hs-pace">—</b><span id="hs-paceu">Pace</span></div>
       </div>
       <button class="btn big-cta" onclick="freeRun()">▶&nbsp;&nbsp;MULAI LARI</button>
       <button class="btn dark full" onclick="openGenerator()">BUAT RUTE</button>
@@ -631,6 +639,7 @@ function go(id){
   if(id==='s-home'||id==='s-rute')renderRoutes();
   if(id==='s-riwayat')renderHistory();
   if(id==='s-profil')renderProfile();
+  if(id==='s-home')renderHomeStats();
   if(id==='s-rute-detail')renderDetail();
   if(id==='s-rute'||id==='s-home')autoOrigin();
   if(id==='s-pengaturan')refreshMenu();
@@ -795,18 +804,20 @@ function startSession(email,name){
   try{runs=JSON.parse(localStorage.getItem('ab_runs_'+email)||'[]');}catch(e){runs=[];}
   try{prs=JSON.parse(localStorage.getItem('ab_pr_'+email)||'{}');}catch(e){prs={};}
   loadSettings();loadRouteData();
+  renderHomeStats();
 }
 function setUser(name){
   currentUser=name;
   $('home-name').textContent=name+'!';
   $('profil-name').textContent=name;
   $('profil-ava').textContent=name.charAt(0).toUpperCase();
+  $('home-ava').textContent=name.charAt(0).toUpperCase();
 }
 function doLogout(){
   cancelCountdown();stopTracking();dist=0;secs=0;runs=[];prs={};track=[];
   session=null;localStorage.removeItem(SES_KEY);settings={...DEFAULTS};activeRoute=null;curRoute=null;favs=[];myRoutes=[];
   setUser('');
-  renderHistory();renderProfile();
+  renderHistory();renderProfile();renderHomeStats();
   $('login-pass').value='';$('login-email').value='';prefillLogin();
   go('s-login');toast('Anda telah keluar.');
 }
@@ -1148,6 +1159,18 @@ function computePRs(){
 function updatePRs(km,sec,date){
   PR_DEFS.forEach(d=>{const c=prCandidate(km,sec,date,d);if(c&&(!prs[d.k]||c.sec<prs[d.k].sec))prs[d.k]=c;});
   if(session)try{localStorage.setItem('ab_pr_'+session.email,JSON.stringify(prs));}catch(e){}
+}
+function renderHomeStats(){
+  if(!$('hs-km'))return;
+  const u=unitMeta(),d=new Date();
+  const full=d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}),short=d.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  let km=0,sec=0;
+  runs.forEach(r=>{if(r.date===full||r.date===short){km+=r.km;sec+=secOf(r.t);}});
+  const has=km>0;
+  $('hs-km').textContent=has?(km*1000/u.f).toFixed(1)+' '+u.l:'—';
+  $('hs-time').textContent=has?fmtHMS(sec):'—';
+  $('hs-pace').textContent=has&&km>=0.05?paceStr(sec,km*1000):'—';
+  $('hs-paceu').textContent='Pace /'+u.l;
 }
 function renderProfile(){
   const st=$('profil-stats'),pr=$('profil-prs');if(!st||!pr)return;
@@ -1542,6 +1565,10 @@ renderRoutes();
   }catch(e){localStorage.removeItem(SES_KEY);}
   if(!session)prefillLogin();
 })();
+/* ---- PWA: daftarkan service worker (hanya di HTTPS atau localhost) ---- */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('service-worker.js').catch(()=>{});});
+}
 </script>
 </body>
 </html>
